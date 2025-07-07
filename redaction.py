@@ -17,9 +17,10 @@ import pandas as pd
 import yaml
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
-from google.ads.googleads.v14.enums.types.keyword_plan_network import KeywordPlanNetwork
+from google.ads.googleads.v14.enums import KeywordPlanNetworkEnum
 import os
 from io import StringIO
+from typing import List
 
 
 SERP_API_KEY = st.secrets["serp_api_key"]
@@ -286,45 +287,25 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     variants = [clean_keyword_variant(line) for line in text.strip().splitlines() if line.strip()]
     return list(set(variants))
 
-def get_google_ads_metrics(keywords: list[str]) -> pd.DataFrame:
-    # Charger la config Google Ads depuis les secrets (Streamlit Cloud)
-    yaml_config_str = st.secrets["google_ads_yaml"]  # ou st.secrets["google_ads_yaml"]
-    config_dict = yaml.safe_load(StringIO(yaml_config_str))
-    
-    # Initialiser le client Google Ads avec le dictionnaire
-    client = GoogleAdsClient.load_from_dict(config_dict)
+def get_google_ads_metrics(keywords: List[str]) -> pd.DataFrame:
+    client = GoogleAdsClient.load_from_dict(st.secrets["google_ads"])
 
     keyword_plan_idea_service = client.get_service("KeywordPlanIdeaService")
-    
-    # Créer le bon type de requête
+
     request = client.get_type("GenerateKeywordIdeasRequest")
-
-    request.customer_id = config_dict["login_customer_id"]
-    request.keyword_plan_network = KeywordPlanNetwork.GOOGLE_SEARCH
-
-    # Définir les mots-clés
+    request.customer_id = st.secrets["google_ads"]["login_customer_id"]
+    request.keyword_plan_network = KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH
     request.keyword_seed.keywords.extend(keywords)
-    
-    # Optionnel : pays ciblé (France, id 1000) et langue (français, id 1002)
-    request.geo_target_constants.append("geoTargetConstants/1000")     # France
-    request.language = "languageConstants/1002"                         # French
 
-    try:
-        response = keyword_plan_idea_service.generate_keyword_ideas(request=request)
+    response = keyword_plan_idea_service.generate_keyword_ideas(request=request)
 
-        results = []
-        for idea in response:
-            results.append({
-                "Mot-clé": idea.text,
-                "Volume mensuel": idea.keyword_idea_metrics.avg_monthly_searches,
-                "Concurrence": idea.keyword_idea_metrics.competition.name
-            })
+    data = []
+    for idea in response:
+        keyword = idea.text
+        volume = idea.keyword_idea_metrics.avg_monthly_searches
+        data.append({"Mot-clé": keyword, "Volume mensuel": volume})
 
-        return pd.DataFrame(results)
-
-    except GoogleAdsException as ex:
-        st.error(f"Erreur Google Ads : {ex}")
-        return pd.DataFrame()
+    return pd.DataFrame(data)
 
 
 def estimate_optimal_word_count(keyword, top_n=10):
