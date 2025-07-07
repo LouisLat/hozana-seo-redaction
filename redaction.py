@@ -14,6 +14,8 @@ from google.oauth2 import service_account
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
 import pandas as pd
+import yaml
+from google.ads.googleads.v14.enums.types.keyword_plan_network import KeywordPlanNetworkEnum
 
 
 SERP_API_KEY = st.secrets["serp_api_key"]
@@ -281,42 +283,37 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     return list(set(variants))
 
 def get_google_ads_metrics(keywords: list[str]) -> pd.DataFrame:
-    import tempfile
-    import yaml
-    import pandas as pd
-    from google.ads.googleads.client import GoogleAdsClient
-    from google.ads.googleads.v14.enums.types.keyword_plan_network import KeywordPlanNetworkEnum
-
-    # Lire les secrets
+    # Charger la config depuis les secrets
     yaml_str = st.secrets["google_ads_yaml"]
     config = yaml.safe_load(yaml_str)
 
-    # Fichier temporaire YAML
+    # Créer un fichier temporaire de configuration YAML
     with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".yaml") as temp_yaml:
         yaml.dump(config, temp_yaml)
         temp_yaml.flush()
         client = GoogleAdsClient.load_from_storage(temp_yaml.name)
 
+    customer_id = config["login_customer_id"]
+
+    # Accès au service
     keyword_plan_idea_service = client.get_service("KeywordPlanIdeaService")
 
-    # Création de la requête directement avec le client
-    request = client.get_type("GenerateKeywordIdeaRequest")
-    request.customer_id = config["login_customer_id"]
-    request.keyword_plan_network = KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH
-    request.keyword_seed.keywords.extend(keywords)
+    # Créer la requête en utilisant le bon type (via le service)
+    request = keyword_plan_idea_service.generate_keyword_ideas(
+        customer_id=customer_id,
+        keyword_plan_network=KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH,
+        keyword_seed={"keywords": keywords}
+    )
 
-    response = keyword_plan_idea_service.generate_keyword_ideas(request=request)
-
-    results = []
-    for idea in response:
-        results.append({
-            "keyword": idea.text,
-            "avg_monthly_searches": idea.keyword_idea_metrics.avg_monthly_searches
+    # Parcourir les résultats
+    data = []
+    for idea in request:
+        data.append({
+            "Mot-clé": idea.text,
+            "Volume mensuel": idea.keyword_idea_metrics.avg_monthly_searches
         })
 
-    df = pd.DataFrame(results)
-    df = df.rename(columns={"keyword": "Mot-clé", "avg_monthly_searches": "Volume mensuel"})
-    return df
+    return pd.DataFrame(data)
 
 def estimate_optimal_word_count(keyword, top_n=10):
     serp_results = get_serp_data(keyword, lang='fr', country='fr', top_n=top_n)
