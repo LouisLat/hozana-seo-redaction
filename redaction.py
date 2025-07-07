@@ -17,11 +17,13 @@ import pandas as pd
 import yaml
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
-from google.ads.googleads.v14.enums import KeywordPlanNetworkEnum
+from google.ads.googleads.enums.types.keyword_plan_network import KeywordPlanNetwork
 import os
 from io import StringIO
 from typing import List
 
+import google.ads.googleads
+st.write(google.ads.googleads.__version__)
 
 SERP_API_KEY = st.secrets["serp_api_key"]
 MAGISTERIUM_API_KEY = st.secrets["magisterium_api_key"]
@@ -306,7 +308,7 @@ def get_google_ads_metrics(keywords: List[str]) -> pd.DataFrame:
 
     request = client.get_type("GenerateKeywordIdeasRequest")
     request.customer_id = st.secrets["google_ads"]["login_customer_id"]
-    request.keyword_plan_network = KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH
+    request.keyword_plan_network = KeywordPlanNetwork.GOOGLE_SEARCH
     request.keyword_seed.keywords.extend(keywords)
 
     response = keyword_plan_idea_service.generate_keyword_ideas(request=request)
