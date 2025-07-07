@@ -13,6 +13,7 @@ import unicodedata
 from google.oauth2 import service_account
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
+from google.ads.googleads.v14.services.types.keyword_plan_idea_service import GenerateKeywordIdeaRequest
 
 SERP_API_KEY = st.secrets["serp_api_key"]
 MAGISTERIUM_API_KEY = st.secrets["magisterium_api_key"]
@@ -279,45 +280,50 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     return list(set(variants))
 
 
-def get_google_ads_metrics(keywords, language_code="fr", location_id="1000"):
-    try:
-        # Écrire le fichier YAML à partir de st.secrets
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".yaml") as temp_yaml:
-            temp_yaml.write(st.secrets["google_ads_yaml"])
-            temp_yaml.flush()
-            client = GoogleAdsClient.load_from_storage(temp_yaml.name)
+def get_google_ads_metrics(keywords: list[str]) -> pd.DataFrame:
+    # Lire le YAML stocké en tant que secret
+    yaml_str = st.secrets["google_ads_yaml"]
+    config = yaml.safe_load(yaml_str)
 
-        keyword_plan_idea_service = client.get_service("KeywordPlanIdeaService")
+    # Écrire le YAML dans un fichier temporaire
+    with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".yaml") as temp_yaml:
+        yaml.dump(config, temp_yaml)
+        temp_yaml.flush()
 
-        request = GenerateKeywordIdeaRequest(
-            customer_id=client.login_customer_id,
-            language=language_code,
-            geo_target_constants=[f"geoTargetConstants/{location_id}"],
-            keyword_plan_network=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH_AND_PARTNERS,
-            keyword_seed={"keywords": keywords}
-        )
+        # Initialiser le client Google Ads
+        client = GoogleAdsClient.load_from_storage(temp_yaml.name)
 
-        response = keyword_plan_idea_service.generate_keyword_ideas(request=request)
+    # Récupérer le service
+    keyword_plan_idea_service = client.get_service("KeywordPlanIdeaService")
 
-        results = []
-        for idea in response:
-            results.append({
-                "keyword": idea.text,
-                "avg_monthly_searches": idea.keyword_idea_metrics.avg_monthly_searches,
-                "competition": idea.keyword_idea_metrics.competition.name,
-                "low_top_of_page_bid_micros": idea.keyword_idea_metrics.low_top_of_page_bid_micros,
-                "high_top_of_page_bid_micros": idea.keyword_idea_metrics.high_top_of_page_bid_micros,
-            })
+    # Créer la requête
+    request = GenerateKeywordIdeaRequest(
+        customer_id=config["login_customer_id"],
+        keyword_plan_network=KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH,
+        keyword_seed={"keywords": keywords}
+    )
 
-        return results
+    # Appeler l'API
+    response = keyword_plan_idea_service.generate_keyword_ideas(request=request)
 
-    except GoogleAdsException as ex:
-        st.error(f"Erreur Google Ads : {ex}")
-        return []
+    # Extraire les données
+    results = []
+    for idea in response:
+        results.append({
+            "keyword": idea.text,
+            "avg_monthly_searches": idea.keyword_idea_metrics.avg_monthly_searches
+        })
 
-    except Exception as e:
-        st.error(f"Erreur inattendue : {e}")
-        return []
+    # Construire le DataFrame
+    df = pd.DataFrame(results)
+
+    # Renommer les colonnes en français pour l’affichage
+    df = df.rename(columns={
+        "keyword": "Mot-clé",
+        "avg_monthly_searches": "Volume mensuel"
+    })
+
+    return df
 
 def estimate_optimal_word_count(keyword, top_n=10):
     serp_results = get_serp_data(keyword, lang='fr', country='fr', top_n=top_n)
