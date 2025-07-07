@@ -373,17 +373,6 @@ if keyword:
             st.warning("⚠️ Impossible d'estimer la longueur optimale : contenu insuffisant ou bloqué.")
     else:
         median_words = 1500  # Valeur par défaut si non calculée
-
-
-    if avg_words:
-        st.markdown("### ✍️ Longueur idéale estimée")
-        st.markdown(f"- Moyenne des articles concurrents : **{avg_words} mots**")
-        st.markdown(f"- Médiane des articles concurrents : **{median_words} mots**")
-        if first_result_info:
-            url, wc = first_result_info
-            st.markdown(f"- Article en **1re position** : **{wc} mots** ([voir]({url}))")
-    else:
-        st.warning("⚠️ Impossible d'estimer la longueur optimale : contenu insuffisant ou bloqué.")
     
     if run_keyword_variants:
         with st.spinner("🔁 Recherche de formulations alternatives..."):
