@@ -13,11 +13,10 @@ import unicodedata
 from google.oauth2 import service_account
 from google.ads.googleads.client import GoogleAdsClient
 
-
 SERP_API_KEY = st.secrets["serp_api_key"]
 MAGISTERIUM_API_KEY = st.secrets["magisterium_api_key"]
-
-
+DEEPL_API_KEY = st.secrets["deepl_api_key"]  # si tu utilises DeepL ailleurs
+client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 # Configuration Streamlit
 st.set_page_config(page_title="Assistant SEO Multilingue", layout="wide")
