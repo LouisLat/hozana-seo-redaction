@@ -278,61 +278,45 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     return list(set(variants))
 
 
-def get_google_ads_metrics(keywords, customer_id="6846722693"):
-    import time
-    from google.ads.googleads.client import GoogleAdsClient
-    from google.ads.googleads.errors import GoogleAdsException
+def get_google_ads_metrics(keywords, language_code="fr", location_id="1000"):
+    try:
+        # Écrire le fichier YAML à partir de st.secrets
+        with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".yaml") as temp_yaml:
+            temp_yaml.write(st.secrets["google_ads_yaml"])
+            temp_yaml.flush()
+            client = GoogleAdsClient.load_from_storage(temp_yaml.name)
 
-    # Charger le client Google Ads
-    with tempfile.NamedTemporaryFile(mode="w+", suffix=".yaml", delete=False) as temp_yaml:
-        temp_yaml.write(st.secrets["google_ads_yaml"])
-        temp_yaml.flush()
-        client_ads = GoogleAdsClient.load_from_storage(temp_yaml.name)
-    keyword_plan_idea_service = client_ads.get_service("KeywordPlanIdeaService")
+        keyword_plan_idea_service = client.get_service("KeywordPlanIdeaService")
 
-    # Paramètres France / français
-    language_id = "1000"   # Français
-    location_id = "2250"   # France
+        request = GenerateKeywordIdeaRequest(
+            customer_id=client.login_customer_id,
+            language=language_code,
+            geo_target_constants=[f"geoTargetConstants/{location_id}"],
+            keyword_plan_network=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH_AND_PARTNERS,
+            keyword_seed={"keywords": keywords}
+        )
 
-    data = []
+        response = keyword_plan_idea_service.generate_keyword_ideas(request=request)
 
-    for keyword_text in keywords:
-        request = client_ads.get_type("GenerateKeywordIdeasRequest")
-        request.customer_id = customer_id
-        request.language = f"languageConstants/{language_id}"
-        request.geo_target_constants.append(f"geoTargetConstants/{location_id}")
-        request.keyword_seed.keywords.append(keyword_text)
-        request.include_adult_keywords = False
-
-        try:
-            response = keyword_plan_idea_service.generate_keyword_ideas(request=request)
-
-            for idea in response:
-                metrics = idea.keyword_idea_metrics
-                data.append({
-                    "Mot-clé": idea.text,
-                    "Volume mensuel": metrics.avg_monthly_searches,
-                    "Concurrence": metrics.competition.name,
-                    "CPC bas (€)": round(metrics.low_top_of_page_bid_micros / 1_000_000, 2),
-                    "CPC haut (€)": round(metrics.high_top_of_page_bid_micros / 1_000_000, 2),
-                })
-                break  # on ne prend qu’un résultat par mot-clé
-
-        except GoogleAdsException as ex:
-            data.append({
-                "Mot-clé": keyword_text,
-                "Volume mensuel": "Erreur",
-                "Concurrence": "-",
-                "CPC bas (€)": "-",
-                "CPC haut (€)": "-"
+        results = []
+        for idea in response:
+            results.append({
+                "keyword": idea.text,
+                "avg_monthly_searches": idea.keyword_idea_metrics.avg_monthly_searches,
+                "competition": idea.keyword_idea_metrics.competition.name,
+                "low_top_of_page_bid_micros": idea.keyword_idea_metrics.low_top_of_page_bid_micros,
+                "high_top_of_page_bid_micros": idea.keyword_idea_metrics.high_top_of_page_bid_micros,
             })
 
-        # 🔁 Pause pour éviter le quota 429
-        time.sleep(4)
+        return results
 
-    return data
+    except GoogleAdsException as ex:
+        st.error(f"Erreur Google Ads : {ex}")
+        return []
 
-
+    except Exception as e:
+        st.error(f"Erreur inattendue : {e}")
+        return []
 
 def estimate_optimal_word_count(keyword, top_n=10):
     serp_results = get_serp_data(keyword, lang='fr', country='fr', top_n=top_n)
