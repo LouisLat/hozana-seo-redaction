@@ -279,34 +279,33 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     variants = [clean_keyword_variant(line) for line in text.strip().splitlines() if line.strip()]
     return list(set(variants))
 
-
 def get_google_ads_metrics(keywords: list[str]) -> pd.DataFrame:
-    # Lire le YAML stocké en tant que secret
+    import tempfile
+    import yaml
+    import pandas as pd
+    from google.ads.googleads.client import GoogleAdsClient
+    from google.ads.googleads.v14.enums.types.keyword_plan_network import KeywordPlanNetworkEnum
+
+    # Lire les secrets
     yaml_str = st.secrets["google_ads_yaml"]
     config = yaml.safe_load(yaml_str)
 
-    # Écrire le YAML dans un fichier temporaire
+    # Fichier temporaire YAML
     with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".yaml") as temp_yaml:
         yaml.dump(config, temp_yaml)
         temp_yaml.flush()
-
-        # Initialiser le client Google Ads
         client = GoogleAdsClient.load_from_storage(temp_yaml.name)
 
-    # Récupérer le service
     keyword_plan_idea_service = client.get_service("KeywordPlanIdeaService")
 
-    # Créer la requête
-    request = GenerateKeywordIdeaRequest(
-        customer_id=config["login_customer_id"],
-        keyword_plan_network=KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH,
-        keyword_seed={"keywords": keywords}
-    )
+    # Création de la requête directement avec le client
+    request = client.get_type("GenerateKeywordIdeaRequest")
+    request.customer_id = config["login_customer_id"]
+    request.keyword_plan_network = KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH
+    request.keyword_seed.keywords.extend(keywords)
 
-    # Appeler l'API
     response = keyword_plan_idea_service.generate_keyword_ideas(request=request)
 
-    # Extraire les données
     results = []
     for idea in response:
         results.append({
@@ -314,15 +313,8 @@ def get_google_ads_metrics(keywords: list[str]) -> pd.DataFrame:
             "avg_monthly_searches": idea.keyword_idea_metrics.avg_monthly_searches
         })
 
-    # Construire le DataFrame
     df = pd.DataFrame(results)
-
-    # Renommer les colonnes en français pour l’affichage
-    df = df.rename(columns={
-        "keyword": "Mot-clé",
-        "avg_monthly_searches": "Volume mensuel"
-    })
-
+    df = df.rename(columns={"keyword": "Mot-clé", "avg_monthly_searches": "Volume mensuel"})
     return df
 
 def estimate_optimal_word_count(keyword, top_n=10):
