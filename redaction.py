@@ -12,6 +12,7 @@ import re
 import unicodedata
 from google.oauth2 import service_account
 from google.ads.googleads.client import GoogleAdsClient
+from google.ads.googleads.errors import GoogleAdsException
 
 SERP_API_KEY = st.secrets["serp_api_key"]
 MAGISTERIUM_API_KEY = st.secrets["magisterium_api_key"]
