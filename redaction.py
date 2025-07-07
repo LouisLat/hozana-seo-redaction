@@ -284,8 +284,11 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
 
 def get_google_ads_metrics(keywords: list[str]) -> pd.DataFrame:
     import tempfile
+    import pandas as pd
     from google.ads.googleads.client import GoogleAdsClient
     from google.ads.googleads.v14.enums.types.keyword_plan_network import KeywordPlanNetworkEnum
+    import yaml
+    import streamlit as st
 
     yaml_str = st.secrets["google_ads_yaml"]
     config = yaml.safe_load(yaml_str)
@@ -298,15 +301,13 @@ def get_google_ads_metrics(keywords: list[str]) -> pd.DataFrame:
     customer_id = config["login_customer_id"]
     keyword_plan_idea_service = client.get_service("KeywordPlanIdeaService")
 
-    # ✅ Création correcte du KeywordSeed
-    keyword_seed = client.get_type("KeywordSeed")
-    keyword_seed.keywords.extend(keywords)
+    # ✅ Construction correcte du KeywordSeed + GenerateKeywordIdeaRequest
+    request = client.get_type("GenerateKeywordIdeaRequest")
+    request.customer_id = customer_id
+    request.keyword_plan_network = KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH
+    request.keyword_seed.keywords.extend(keywords)
 
-    response = keyword_plan_idea_service.generate_keyword_ideas(
-        customer_id=customer_id,
-        keyword_plan_network=KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH,
-        keyword_seed=keyword_seed
-    )
+    response = keyword_plan_idea_service.generate_keyword_ideas(request=request)
 
     data = []
     for idea in response:
@@ -316,6 +317,7 @@ def get_google_ads_metrics(keywords: list[str]) -> pd.DataFrame:
         })
 
     return pd.DataFrame(data)
+
 
 def estimate_optimal_word_count(keyword, top_n=10):
     serp_results = get_serp_data(keyword, lang='fr', country='fr', top_n=top_n)
