@@ -288,7 +288,19 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     return list(set(variants))
 
 def get_google_ads_metrics(keywords: List[str]) -> pd.DataFrame:
-    client = GoogleAdsClient.load_from_dict(st.secrets["google_ads"])
+    client = get_google_ads_client()
+    def get_google_ads_client():
+        # Si le fichier google-ads.yaml est présent (local)
+        if os.path.exists("google-ads.yaml"):
+            return GoogleAdsClient.load_from_storage("google-ads.yaml")
+        
+        # Sinon (Streamlit Cloud via st.secrets)
+        yaml_config = st.secrets["google_ads"]
+        with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
+            yaml.dump(dict(yaml_config), tmp)
+            tmp.flush()
+            return GoogleAdsClient.load_from_storage(tmp.name)
+
 
     keyword_plan_idea_service = client.get_service("KeywordPlanIdeaService")
 
