@@ -308,8 +308,9 @@ def get_google_ads_metrics(keywords: List[str]) -> pd.DataFrame:
     request = client.get_type("GenerateKeywordIdeasRequest")
     request.customer_id = st.secrets["google_ads"]["login_customer_id"]
 
-    # ✅ Correct way to set KeywordPlanNetwork
-    request.keyword_plan_network = KeywordPlanNetwork.GOOGLE_SEARCH
+    # ✅ Compatibilité avec toutes versions : on utilise get_type
+    KeywordPlanNetworkEnum = client.get_type("KeywordPlanNetworkEnum")
+    request.keyword_plan_network = KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH
 
     request.keyword_seed.keywords.extend(keywords)
 
