@@ -17,6 +17,7 @@ import pandas as pd
 import yaml
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
+from google.ads.googleads.v22.enums.types.keyword_plan_network import KeywordPlanNetwork
 
 import os
 from io import StringIO
@@ -308,7 +309,7 @@ def get_google_ads_metrics(keywords: List[str]) -> pd.DataFrame:
     request.customer_id = st.secrets["google_ads"]["login_customer_id"]
 
     # ✅ Correct way to set KeywordPlanNetwork
-    request.keyword_plan_network = client.enums.KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH
+    request.keyword_plan_network = KeywordPlanNetwork.GOOGLE_SEARCH
 
     request.keyword_seed.keywords.extend(keywords)
 
