@@ -469,8 +469,9 @@ if keyword:
                     return 2.5
 
             def suggest_ctas(article_title, lang="fr"):
-                credentials = service_account.Credentials.from_service_account_file(
-                    "credentials.json",
+                credentials_dict = st.secrets["gcp_service_account"]
+                credentials = service_account.Credentials.from_service_account_info(
+                    credentials_dict,
                     scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"],
                 )
                 service = build("sheets", "v4", credentials=credentials)
@@ -617,8 +618,9 @@ if keyword:
         SHEET_ID = "1HWgw3qhjGxaFE1gDFwymFHcPodt88hzXYvk1YPxLxWw"
         SHEET_RANGE = "Question 7364!A2:B"  # A = URL, B = Title
 
-        credentials = service_account.Credentials.from_service_account_file(
-            "credentials.json",
+        credentials_dict = st.secrets["gcp_service_account"]
+        credentials = service_account.Credentials.from_service_account_info(
+            credentials_dict,
             scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"],
         )
         service = build("sheets", "v4", credentials=credentials)
