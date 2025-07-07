@@ -10,6 +10,9 @@ import statistics
 import trafilatura
 import re
 import unicodedata
+from google.oauth2 import service_account
+from google.ads.googleads.client import GoogleAdsClient
+
 
 
 # Configuration Streamlit
@@ -278,7 +281,10 @@ def get_google_ads_metrics(keywords, customer_id="6846722693"):
     from google.ads.googleads.errors import GoogleAdsException
 
     # Charger le client Google Ads
-    client_ads = GoogleAdsClient.load_from_storage("google-ads.yaml")
+    with tempfile.NamedTemporaryFile(mode="w+", suffix=".yaml", delete=False) as temp_yaml:
+        temp_yaml.write(st.secrets["google_ads_yaml"])
+        temp_yaml.flush()
+        client_ads = GoogleAdsClient.load_from_storage(temp_yaml.name)
     keyword_plan_idea_service = client_ads.get_service("KeywordPlanIdeaService")
 
     # Paramètres France / français
