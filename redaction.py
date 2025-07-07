@@ -283,31 +283,33 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     return list(set(variants))
 
 def get_google_ads_metrics(keywords: list[str]) -> pd.DataFrame:
-    # Charger la config depuis les secrets
+    import tempfile
+    from google.ads.googleads.client import GoogleAdsClient
+    from google.ads.googleads.v14.enums.types.keyword_plan_network import KeywordPlanNetworkEnum
+
     yaml_str = st.secrets["google_ads_yaml"]
     config = yaml.safe_load(yaml_str)
 
-    # Créer un fichier temporaire de configuration YAML
     with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".yaml") as temp_yaml:
         yaml.dump(config, temp_yaml)
         temp_yaml.flush()
         client = GoogleAdsClient.load_from_storage(temp_yaml.name)
 
     customer_id = config["login_customer_id"]
-
-    # Accès au service
     keyword_plan_idea_service = client.get_service("KeywordPlanIdeaService")
 
-    # Créer la requête en utilisant le bon type (via le service)
-    request = keyword_plan_idea_service.generate_keyword_ideas(
+    # ✅ Création correcte du KeywordSeed
+    keyword_seed = client.get_type("KeywordSeed")
+    keyword_seed.keywords.extend(keywords)
+
+    response = keyword_plan_idea_service.generate_keyword_ideas(
         customer_id=customer_id,
         keyword_plan_network=KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH,
-        keyword_seed={"keywords": keywords}
+        keyword_seed=keyword_seed
     )
 
-    # Parcourir les résultats
     data = []
-    for idea in request:
+    for idea in response:
         data.append({
             "Mot-clé": idea.text,
             "Volume mensuel": idea.keyword_idea_metrics.avg_monthly_searches
