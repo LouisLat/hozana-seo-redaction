@@ -341,24 +341,25 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
 
 def get_dataforseo_metrics(keywords: List[str]) -> pd.DataFrame:
     url = "https://api.dataforseo.com/v3/keywords_data/google/search_volume/live"
-    payload = {
+    
+    # Identifiants depuis st.secrets
+    username = st.secrets["dataforseo"]["username"]
+    password = st.secrets["dataforseo"]["password"]
+    
+    payload = [{
         "keywords": keywords,
-        "language_name": "fr",
-        "location_name": "2250"
-    }
+        "language_code": "fr",       # ISO code pour le français
+        "location_code": 2250        # 2250 = France (cf. doc DataForSEO)
+    }]
 
-    response = requests.post(
-        url,
-        auth=(st.secrets["dataforseo"]["username"], st.secrets["dataforseo"]["password"]),
-        json=[payload]
-    )
+    response = requests.post(url, auth=(username, password), json=payload)
 
     if response.status_code != 200:
         st.error(f"❌ Erreur HTTP {response.status_code} - {response.text}")
         return pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])
 
-    results = response.json()
     try:
+        results = response.json()
         task = results.get("tasks", [])[0]
         result = task.get("result", [])
         if not result or not result[0].get("items"):
@@ -367,13 +368,16 @@ def get_dataforseo_metrics(keywords: List[str]) -> pd.DataFrame:
 
         items = result[0]["items"]
         return pd.DataFrame([
-            {"Mot-clé": item["keyword"], "Volume mensuel": item["search_volume"]}
-            for item in items if item.get("search_volume") is not None
+            {
+                "Mot-clé": item.get("keyword", ""),
+                "Volume mensuel": item.get("search_volume", 0)
+            }
+            for item in items
         ])
-    except Exception as e:
-        st.error(f"❌ Erreur dans les données DataForSEO : {e}")
-        return pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])
 
+    except Exception as e:
+        st.error(f"❌ Erreur dans la réponse DataForSEO : {e}")
+        return pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])
 
 def estimate_optimal_word_count(keyword, top_n=10):
     serp_results = get_serp_data(keyword, lang='fr', country='fr', top_n=top_n)
