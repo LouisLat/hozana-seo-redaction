@@ -69,6 +69,7 @@ st.title("🧠 Assistant de rédaction SEO multilingue")
 
 with st.form("formulaire_lancement"):
     keyword = st.text_input("Mot-clé principal (en français)")
+    start_analysis = st.button("🚀 Lancer l’analyse SEO")
     submitted = st.form_submit_button("🚀 Lancer l’analyse SEO")
 
 
