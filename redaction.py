@@ -436,20 +436,22 @@ if keyword:
         st.dataframe(df_test)
 
     if st.checkbox("🔍 Test API avec mots-clés anglais génériques"):
-    test_payload = [{
-        "keywords": ["shoes", "insurance", "laptop"],
-        "language_code": "en",
-        "location_code": 2840  # United States
-    }]
+        test_payload = [{
+            "keywords": ["shoes", "insurance", "laptop"],
+            "language_code": "en",
+            "location_code": 2840  # United States
+        }]
+    
+        response = requests.post(
+            "https://api.dataforseo.com/v3/keywords_data/google/search_volume/live",
+            auth=(st.secrets["dataforseo"]["username"], st.secrets["dataforseo"]["password"]),
+            json=test_payload
+        )
+    
+        results = response.json()
+        st.write("Status code :", response.status_code)
+        st.json(results)
 
-    response = requests.post(
-        "https://api.dataforseo.com/v3/keywords_data/google/search_volume/live",
-        auth=(st.secrets["dataforseo"]["username"], st.secrets["dataforseo"]["password"]),
-        json=test_payload
-    )
-
-    st.write("Status code :", response.status_code)
-    st.write("Réponse brute :", response.json())
 
     
     if run_google_ads_data and keyword_variants:
