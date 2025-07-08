@@ -424,6 +424,14 @@ if keyword:
         keyword_variants = []
 
 
+        # 🔬 Test manuel DataForSEO
+    if st.checkbox("🔬 Test API DataForSEO avec un mot-clé simple"):
+        test_keywords = ["chapelet", "messe", "confession"]
+        st.write("Envoi à DataForSEO :", test_keywords)
+        df_test = get_dataforseo_metrics(test_keywords)
+        st.dataframe(df_test)
+
+    
     if run_google_ads_data and keyword_variants:
         with st.spinner("📊 Récupération des volumes de recherche Google Ads..."):
             keyword_data = get_dataforseo_metrics(keyword_variants)
