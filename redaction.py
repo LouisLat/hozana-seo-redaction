@@ -21,9 +21,6 @@ from googleapiclient.discovery import build
 import base64
 
 
-HISTORIQUE_FICHIER = "historique_recherches.json"
-HISTORIQUE_RECHERCHES = "historique_resultats.json"
-
 SERP_API_KEY = st.secrets["serp_api_key"]
 MAGISTERIUM_API_KEY = st.secrets["magisterium_api_key"]
 DEEPL_API_KEY = st.secrets["deepl_api_key"]  # si tu utilises DeepL ailleurs
@@ -32,20 +29,27 @@ client = OpenAI(api_key=st.secrets["openai_api_key"])
 # Configuration Streamlit
 st.set_page_config(page_title="Assistant SEO Multilingue", layout="wide")
 
-# 🧾 Historique des recherches (affichage dans la sidebar)
-st.sidebar.markdown("## 📜 Historique des recherches")
+st.sidebar.markdown("## 📜 Recherches passées")
 
-if os.path.exists(HISTORIQUE_FICHIER):
-    with open(HISTORIQUE_FICHIER, "r", encoding="utf-8") as f:
+selected_keyword = None  # Ce sera utilisé pour détecter un clic
+
+
+HISTORIQUE_RECHERCHES = "historique_resultats.json"
+
+if os.path.exists(HISTORIQUE_RECHERCHES):
+    with open(HISTORIQUE_RECHERCHES, "r", encoding="utf-8") as f:
         historique = json.load(f)
     if historique:
-        for item in reversed(historique[-10:]):  # Affiche les 10 dernières
+        historique = list(reversed(historique[-10:]))  # Derniers d’abord
+        for i, item in enumerate(historique):
             date = item['timestamp'].split("T")[0]
-            st.sidebar.markdown(f"- {item['mot_clé']} *(le {date})*")
+            if st.sidebar.button(f"{item['mot_clé']} (le {date})", key=f"historique_{i}"):
+                selected_keyword = item
     else:
-        st.sidebar.info("Aucune recherche enregistrée.")
+        st.sidebar.info("Aucune analyse enregistrée.")
 else:
-    st.sidebar.info("Aucune recherche enregistrée.")
+    st.sidebar.info("Aucune analyse enregistrée.")
+    
 
 # 🎨 CSS pour encadrés
 st.markdown("""
