@@ -515,10 +515,14 @@ if keyword:
 
             def suggest_ctas(article_title, lang="fr"):
                 credentials_dict = st.secrets["gcp_service_account"]
+                scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
                 credentials = service_account.Credentials.from_service_account_info(
                     credentials_dict,
-                    scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"],
+                    scopes=scopes,
                 )
+
+
+                
                 service = build("sheets", "v4", credentials=credentials)
                 result = service.spreadsheets().values().get(
                     spreadsheetId=SHEET_ID, range=SHEET_RANGE
