@@ -367,6 +367,7 @@ def get_dataforseo_metrics_new_api(keywords: list) -> pd.DataFrame:
         return pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])
 
     data = response.json()
+    st.json(data)  # 👈 Affiche toute la réponse API dans l'interface Streamlit
     task = data.get("tasks", [])[0]
 
     # 🔐 Compte bloqué ?
