@@ -434,11 +434,11 @@ if keyword:
     else:
         keyword_variants = []
 
-# Sécurité : initialise keyword_variants s'il n'existe pas encore
-if 'mot_cle_principal' in locals() and 'autres_formulations' in locals():
-    keyword_variants = [mot_cle_principal] + autres_formulations
-else:
+
+# Sécurité : s'assurer que keyword_variants est bien défini
+if 'keyword_variants' not in locals():
     keyword_variants = []
+
 
 
 if run_google_ads_data and keyword_variants:
