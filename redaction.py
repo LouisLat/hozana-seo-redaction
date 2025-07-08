@@ -21,6 +21,7 @@ from google.ads.googleads.errors import GoogleAdsException
 import os
 from io import StringIO
 from typing import List
+import datetime
 
 HISTORIQUE_FICHIER = "historique_recherches.json"
 
