@@ -11,12 +11,8 @@ import trafilatura
 import re
 import unicodedata
 from google.oauth2 import service_account
-from google.ads.googleads.client import GoogleAdsClient
-from google.ads.googleads.errors import GoogleAdsException
 import pandas as pd
 import yaml
-from google.ads.googleads.client import GoogleAdsClient
-from google.ads.googleads.errors import GoogleAdsException
 
 import os
 from io import StringIO
@@ -343,39 +339,36 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     variants = [clean_keyword_variant(line) for line in text.strip().splitlines() if line.strip()]
     return list(set(variants))
 
-def get_google_ads_metrics(keywords: List[str]) -> pd.DataFrame:
-    def get_google_ads_client():
-        if os.path.exists("google-ads.yaml"):
-            return GoogleAdsClient.load_from_storage("google-ads.yaml")
+def get_dataforseo_metrics(keywords: List[str]) -> pd.DataFrame:
+    url = "https://api.dataforseo.com/v3/keywords_data/google/search_volume/live"
+    payload = {
+        "keywords": keywords,
+        "language_name": "French",
+        "location_name": "France"
+    }
 
-        yaml_config = st.secrets["google_ads"]
-        with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
-            yaml.dump(dict(yaml_config), tmp)
-            tmp.flush()
-            return GoogleAdsClient.load_from_storage(tmp.name)
+    response = requests.post(
+        url,
+        auth=(st.secrets["dataforseo"]["username"], st.secrets["dataforseo"]["password"]),
+        json=[payload]
+    )
 
-    client = get_google_ads_client()
-    keyword_plan_idea_service = client.get_service("KeywordPlanIdeaService")
+    if response.status_code != 200:
+        st.error(f"Erreur DataForSEO : {response.status_code} - {response.text}")
+        return pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])
 
-    request = client.get_type("GenerateKeywordIdeasRequest")
-    request.customer_id = st.secrets["google_ads"]["login_customer_id"]
-
-    # ✅ Compatibilité avec toutes versions : on utilise get_type
-    KeywordPlanNetworkEnum = client.get_type("KeywordPlanNetworkEnum")
-    request.keyword_plan_network = KeywordPlanNetworkEnum.KeywordPlanNetwork.GOOGLE_SEARCH
-
-    request.keyword_seed.keywords.extend(keywords)
-
+    results = response.json()
     try:
-        response = keyword_plan_idea_service.generate_keyword_ideas(request=request)
-        data = []
-        for idea in response:
-            keyword = idea.text
-            volume = idea.keyword_idea_metrics.avg_monthly_searches
-            data.append({"Mot-clé": keyword, "Volume mensuel": volume})
-        return pd.DataFrame(data)
+        data = results["tasks"][0]["result"][0]["items"]
+        return pd.DataFrame([
+            {
+                "Mot-clé": item["keyword"],
+                "Volume mensuel": item["search_volume"]
+            }
+            for item in data if item.get("search_volume") is not None
+        ])
     except Exception as e:
-        st.error(f"Erreur Google Ads : {e}")
+        st.error(f"Erreur dans les données DataForSEO : {e}")
         return pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])
 
 
@@ -430,7 +423,8 @@ if keyword:
 
     if run_google_ads_data and keyword_variants:
         with st.spinner("📊 Récupération des volumes de recherche Google Ads..."):
-            keyword_data = get_google_ads_metrics(keyword_variants)
+            keyword_data = get_dataforseo_metrics(keyword_variants)
+
 
         import pandas as pd
         df_keywords = pd.DataFrame(keyword_data)
