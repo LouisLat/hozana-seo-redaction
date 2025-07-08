@@ -433,43 +433,53 @@ if keyword:
     else:
         keyword_variants = []
 
-    if run_google_ads_data and keyword_variants:
-        with st.spinner("📊 Récupération des volumes de recherche Google Ads..."):
-            try:
-                url = "https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live"
-                payload = [{
-                    "search_partners": True,
-                    "keywords": keyword_variants,
-                    "location_code": 2250,
-                    "language_code": "fr",
-                    "sort_by": "search_volume",
-                    "include_adult_keywords": False
-                }]
-    
-                username = st.secrets["dataforseo"]["username"]
-                password = st.secrets["dataforseo"]["password"]
-                auth_token = base64.b64encode(f"{username}:{password}".encode()).decode()
-    
-                headers = {
-                    "Authorization": f"Basic {auth_token}",
-                    "Content-Type": "application/json"
-                }
-    
-                response = requests.post(url, headers=headers, json=payload)
-    
-                if response.status_code != 200:
-                    st.error(f"❌ Erreur HTTP {response.status_code} : {response.text}")
+if run_google_ads_data and keyword_variants:
+    with st.spinner("📊 Récupération des volumes de recherche Google Ads..."):
+        try:
+            url = "https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live"
+            payload = [{
+                "search_partners": True,
+                "keywords": keyword_variants,
+                "location_code": 2250,
+                "language_code": "fr",
+                "sort_by": "search_volume",
+                "include_adult_keywords": False
+            }]
+
+            username = st.secrets["dataforseo"]["username"]
+            password = st.secrets["dataforseo"]["password"]
+            auth_token = base64.b64encode(f"{username}:{password}".encode()).decode()
+
+            headers = {
+                "Authorization": f"Basic {auth_token}",
+                "Content-Type": "application/json"
+            }
+
+            response = requests.post(url, headers=headers, json=payload)
+
+            if response.status_code != 200:
+                st.error(f"❌ Erreur HTTP {response.status_code} : {response.text}")
+                keyword_data = []
+            else:
+                data = response.json()
+                tasks = data.get("tasks", [])
+                if not tasks or "result" not in tasks[0]:
+                    st.error("❌ Erreur : pas de champ `result` dans la réponse DataForSEO.")
                     keyword_data = []
                 else:
-                    data = response.json()
-                    items = data["tasks"][0]["result"][0]["items"]
-                    keyword_data = [
-                        {"Mot-clé": item.get("keyword", ""), "Volume mensuel": item.get("search_volume", 0)}
-                        for item in items
-                    ]
-            except Exception as e:
-                st.error(f"❌ Erreur lors de la récupération des données Google Ads : {e}")
-                keyword_data = []
+                    result = tasks[0]["result"]
+                    if not result or "items" not in result[0]:
+                        st.error("❌ Erreur : pas de champ `items` dans `result[0]`.")
+                        keyword_data = []
+                    else:
+                        items = result[0]["items"]
+                        keyword_data = [
+                            {"Mot-clé": item.get("keyword", ""), "Volume mensuel": item.get("search_volume", 0)}
+                            for item in items
+                        ]
+        except Exception as e:
+            st.error(f"❌ Erreur inattendue lors de la récupération des données Google Ads : {e}")
+            keyword_data = []
 
     
         df_keywords = pd.DataFrame(keyword_data)
