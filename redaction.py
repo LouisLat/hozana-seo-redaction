@@ -24,6 +24,7 @@ from typing import List
 import datetime
 
 HISTORIQUE_FICHIER = "historique_recherches.json"
+HISTORIQUE_RECHERCHES = "historique_resultats.json"
 
 SERP_API_KEY = st.secrets["serp_api_key"]
 MAGISTERIUM_API_KEY = st.secrets["magisterium_api_key"]
@@ -263,6 +264,34 @@ def generate_pdf(keyword, plan_text, section_bullets):
     tmp_path = tempfile.mktemp(".pdf")
     pdf.output(tmp_path)
     return tmp_path
+
+def sauvegarder_resultat_complet(keyword, plan, variantes, volumes, communautes, liens, cout):
+    try:
+        if os.path.exists(HISTORIQUE_RECHERCHES):
+            with open(HISTORIQUE_RECHERCHES, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        else:
+            data = []
+
+        nouvelle_entree = {
+            "mot_clé": keyword,
+            "timestamp": datetime.datetime.now().isoformat(),
+            "plan_seo": plan,
+            "variantes": variantes,
+            "volumes_ads": volumes,
+            "communautes": communautes,
+            "liens": liens,
+            "cout_openai_usd": cout
+        }
+
+        data.append(nouvelle_entree)
+
+        with open(HISTORIQUE_RECHERCHES, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+    except Exception as e:
+        st.warning(f"Erreur lors de la sauvegarde complète : {e}")
+
 
 def count_words_in_page(url):
     try:
@@ -697,7 +726,16 @@ if keyword:
         st.markdown("Voici les **15 liens internes** les plus pertinents à intégrer dans l’article, avec leur phrase d’ancrage :")
         st.dataframe(df_top[["Titre du lien", "URL", "À insérer après", "Phrase avec ancre"]], use_container_width=True)
 
-
+    sauvegarder_resultat_complet(
+        keyword=keyword,
+        plan=plan_text,
+        variantes=keyword_variants,
+        volumes=df_keywords.to_dict(orient="records") if run_google_ads_data and not df_keywords.empty else [],
+        communautes=df_ctas.to_dict(orient="records") if run_community_suggestions else [],
+        liens=df_top.to_dict(orient="records") if run_link_suggestions else [],
+        cout=estimate_cost(total_tokens_used)
+    )
+    
     if st.button("📥 Télécharger la fiche SEO en PDF"):
         path = generate_pdf(keyword, plan_text, section_bullets)
         with open(path, "rb") as f:
