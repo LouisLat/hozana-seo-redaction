@@ -22,6 +22,7 @@ import os
 from io import StringIO
 from typing import List
 
+HISTORIQUE_FICHIER = "historique_recherches.json"
 
 SERP_API_KEY = st.secrets["serp_api_key"]
 MAGISTERIUM_API_KEY = st.secrets["magisterium_api_key"]
