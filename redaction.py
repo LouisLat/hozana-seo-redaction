@@ -67,7 +67,6 @@ a {
 
 st.title("🧠 Assistant de rédaction SEO multilingue")
 
-st.markdown("## 📝 Analyse SEO")
 with st.form("formulaire_lancement"):
     keyword = st.text_input("Mot-clé principal (en français)")
     submitted = st.form_submit_button("🚀 Lancer l’analyse SEO")
