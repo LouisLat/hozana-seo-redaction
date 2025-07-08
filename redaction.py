@@ -67,8 +67,11 @@ a {
 
 st.title("🧠 Assistant de rédaction SEO multilingue")
 
-keyword = st.text_input("Mot-clé principal (en français)")
-lancer_analyse = st.button("🚀 Lancer l’analyse SEO")
+st.markdown("## 📝 Analyse SEO")
+with st.form("formulaire_lancement"):
+    keyword = st.text_input("Mot-clé principal (en français)")
+    submitted = st.form_submit_button("🚀 Lancer l’analyse SEO")
+
 
 
 # ✅ Options de l’analyse à activer ou non
@@ -410,8 +413,7 @@ def estimate_optimal_word_count(keyword, top_n=10):
 
     return avg, median, (first_url, first_word_count), word_counts
 
-
-if lancer_analyse and keyword:
+if submitted and keyword:
     enregistrer_recherche(keyword)
 
 
