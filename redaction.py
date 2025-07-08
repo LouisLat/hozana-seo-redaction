@@ -343,8 +343,8 @@ def get_dataforseo_metrics(keywords: List[str]) -> pd.DataFrame:
     url = "https://api.dataforseo.com/v3/keywords_data/google/search_volume/live"
     payload = {
         "keywords": keywords,
-        "language_name": "French",
-        "location_name": "France"
+        "language_name": "fr",
+        "location_name": "2250"
     }
 
     response = requests.post(
