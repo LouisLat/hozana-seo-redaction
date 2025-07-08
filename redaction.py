@@ -339,13 +339,52 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     variants = [clean_keyword_variant(line) for line in text.strip().splitlines() if line.strip()]
     return list(set(variants))
 
+def get_dataforseo_metrics(keywords: List[str], use_individuel_fallback=True) -> pd.DataFrame:
+    url = "https://api.dataforseo.com/v3/keywords_data/google/search_volume/live"
+    username = st.secrets["dataforseo"]["username"]
+    password = st.secrets["dataforseo"]["password"]
+
+    keywords = [k.strip() for k in keywords if len(k.strip()) > 1]
+    if not keywords:
+        return pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])
+
+    payload = [{
+        "keywords": keywords,
+        "language_code": "fr",
+        "location_code": 2250  # France
+    }]
+
+    response = requests.post(url, auth=(username, password), json=payload)
+    results = response.json()
+
+    task = results.get("tasks", [])[0]
+    status = task.get("status_code")
+
+    # 🔐 Si compte bloqué
+    if status == 40201:
+        st.warning("⚠️ Compte DataForSEO temporairement bloqué. Contactez support@dataforseo.com.")
+        return pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])
+
+    # ✅ Résultat normal
+    try:
+        items = task.get("result", [])[0].get("items", [])
+        if not items and use_individuel_fallback:
+            st.info("🔁 Aucun volume en batch — tentative individuelle mot par mot...")
+            return get_dataforseo_metrics_individuel(keywords)
+        return pd.DataFrame([
+            {"Mot-clé": item.get("keyword", ""), "Volume mensuel": item.get("search_volume", 0)}
+            for item in items
+        ])
+    except Exception as e:
+        st.error(f"❌ Erreur de traitement DataForSEO : {e}")
+        return pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])
+
 def get_dataforseo_metrics_individuel(keywords: List[str], pause=1.5) -> pd.DataFrame:
     url = "https://api.dataforseo.com/v3/keywords_data/google/search_volume/live"
     username = st.secrets["dataforseo"]["username"]
     password = st.secrets["dataforseo"]["password"]
 
     results = []
-
     for kw in keywords:
         payload = [{
             "keywords": [kw],
@@ -354,27 +393,25 @@ def get_dataforseo_metrics_individuel(keywords: List[str], pause=1.5) -> pd.Data
         }]
 
         response = requests.post(url, auth=(username, password), json=payload)
-        data = response.json()
-
-        # 🔍 Vérifie si le compte est toujours bloqué
-        task = data.get("tasks", [])[0]
-        if task.get("status_code") == 40201:
-            st.warning("⚠️ Compte DataForSEO temporairement bloqué.")
-            break
-
         try:
+            data = response.json()
+            task = data.get("tasks", [])[0]
+            if task.get("status_code") == 40201:
+                st.warning("⚠️ Compte DataForSEO temporairement bloqué.")
+                break
             items = task.get("result", [])[0].get("items", [])
             for item in items:
                 results.append({
                     "Mot-clé": item.get("keyword", ""),
                     "Volume mensuel": item.get("search_volume", 0)
                 })
-        except Exception:
-            pass
-
-        time.sleep(pause)  # ⏱️ Attente entre les requêtes
+        except Exception as e:
+            st.error(f"Erreur avec le mot-clé '{kw}' : {e}")
+        time.sleep(pause)  # ⏱️ ralentissement pour rester sous les radars
 
     return pd.DataFrame(results)
+
+
 
 def estimate_optimal_word_count(keyword, top_n=10):
     serp_results = get_serp_data(keyword, lang='fr', country='fr', top_n=top_n)
