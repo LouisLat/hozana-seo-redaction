@@ -413,7 +413,7 @@ def estimate_optimal_word_count(keyword, top_n=10):
 
     return avg, median, (first_url, first_word_count), word_counts
 
-if submitted and keyword:
+if start_analysis and keyword:
     enregistrer_recherche(keyword)
 
 
