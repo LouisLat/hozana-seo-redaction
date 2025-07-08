@@ -73,6 +73,8 @@ start_analysis = st.button("🚀 Lancer l’analyse SEO")
 
 if start_analysis and keyword:
     # exécution de l’analyse
+    pass
+
 
 
 
