@@ -31,6 +31,21 @@ client = OpenAI(api_key=st.secrets["openai_api_key"])
 # Configuration Streamlit
 st.set_page_config(page_title="Assistant SEO Multilingue", layout="wide")
 
+# 🧾 Historique des recherches (affichage dans la sidebar)
+st.sidebar.markdown("## 📜 Historique des recherches")
+
+if os.path.exists(HISTORIQUE_FICHIER):
+    with open(HISTORIQUE_FICHIER, "r", encoding="utf-8") as f:
+        historique = json.load(f)
+    if historique:
+        for item in reversed(historique[-10:]):  # Affiche les 10 dernières
+            date = item['timestamp'].split("T")[0]
+            st.sidebar.markdown(f"- {item['mot_clé']} *(le {date})*")
+    else:
+        st.sidebar.info("Aucune recherche enregistrée.")
+else:
+    st.sidebar.info("Aucune recherche enregistrée.")
+
 # 🎨 CSS pour encadrés
 st.markdown("""
 <style>
@@ -64,6 +79,30 @@ run_link_suggestions = st.checkbox("Suggérer des liens internes avec ancrage", 
 total_tokens_used = 0
 def estimate_cost(tokens_used):
     return round(tokens_used / 1000 * 0.01, 4)
+
+HISTORIQUE_FICHIER = "historique_recherches.json"
+
+def enregistrer_recherche(keyword):
+    try:
+        if os.path.exists(HISTORIQUE_FICHIER):
+            with open(HISTORIQUE_FICHIER, "r", encoding="utf-8") as f:
+                historique = json.load(f)
+        else:
+            historique = []
+
+        nouvelle_entree = {
+            "mot_clé": keyword,
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+
+        historique.append(nouvelle_entree)
+
+        with open(HISTORIQUE_FICHIER, "w", encoding="utf-8") as f:
+            json.dump(historique, f, indent=2, ensure_ascii=False)
+
+    except Exception as e:
+        st.warning(f"Erreur lors de l'enregistrement de l'historique : {e}")
+
 
 def interroger_magisterium_contenu(section_title, mot_cle):
     url = "https://www.magisterium.com/api/v1/chat/completions"
@@ -330,6 +369,8 @@ def estimate_optimal_word_count(keyword, top_n=10):
 
 
 if keyword:
+    enregistrer_recherche(keyword)
+
 
     if run_length_analysis:
         with st.spinner("📊 Analyse de la longueur optimale..."):
