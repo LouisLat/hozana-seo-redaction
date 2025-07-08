@@ -23,6 +23,8 @@ from io import StringIO
 from typing import List
 import datetime
 
+from googleapiclient.discovery import build
+
 HISTORIQUE_FICHIER = "historique_recherches.json"
 HISTORIQUE_RECHERCHES = "historique_resultats.json"
 
