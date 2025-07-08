@@ -22,9 +22,6 @@ import os
 from io import StringIO
 from typing import List
 
-import pkg_resources
-st.write("Version Google Ads :", pkg_resources.get_distribution("google-ads").version)
-
 
 SERP_API_KEY = st.secrets["serp_api_key"]
 MAGISTERIUM_API_KEY = st.secrets["magisterium_api_key"]
