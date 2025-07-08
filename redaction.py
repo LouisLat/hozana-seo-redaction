@@ -64,22 +64,6 @@ run_google_ads_data = st.checkbox("Afficher les volumes Google Ads", value=True)
 run_community_suggestions = st.checkbox("Suggérer des communautés à promouvoir", value=True)
 run_link_suggestions = st.checkbox("Suggérer des liens internes avec ancrage", value=True)
 
-# (Optionnel) Résumé visuel
-st.markdown("#### 📝 Parties à analyser :")
-if run_length_analysis:
-    st.markdown("- 📏 Longueur des concurrents")
-if run_keyword_variants:
-    st.markdown("- 🧠 Variantes de mots-clés")
-if run_google_ads_data:
-    st.markdown("- 📊 Volumes Google Ads")
-if run_community_suggestions:
-    st.markdown("- 🙏 Suggestions de communautés")
-if run_link_suggestions:
-    st.markdown("- 🔗 Liens internes recommandés")
-
-
-top_n = st.slider("Nombre de résultats Google FR à analyser", 5, 20, 10)
-
 total_tokens_used = 0
 def estimate_cost(tokens_used):
     return round(tokens_used / 1000 * 0.01, 4)
@@ -352,7 +336,7 @@ if keyword:
 
     if run_length_analysis:
         with st.spinner("📊 Analyse de la longueur optimale..."):
-            avg_words, median_words, first_result_info, raw_counts = estimate_optimal_word_count(keyword, top_n)
+            avg_words, median_words, first_result_info, raw_counts = estimate_optimal_word_count(keyword, 10)
 
         if avg_words:
             st.markdown("### ✍️ Longueur idéale estimée")
@@ -519,7 +503,7 @@ if keyword:
 
     
     with st.spinner("⏳ Génération du plan SEO..."):
-        plan_text = generate_plan(keyword, top_n, median_words)
+        plan_text = generate_plan(keyword, 10, median_words)
         sections = extract_sections(plan_text)
 
     st.success("✅ Plan généré.")
