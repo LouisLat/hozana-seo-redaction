@@ -426,33 +426,6 @@ if keyword:
             keyword_variants = get_keyword_variants(keyword)
     else:
         keyword_variants = []
-
-
-        # 🔬 Test manuel DataForSEO
-    if st.checkbox("🔬 Test API DataForSEO avec un mot-clé simple"):
-        test_keywords = ["chapelet", "messe", "confession"]
-        st.write("Envoi à DataForSEO :", test_keywords)
-        df_test = get_dataforseo_metrics(test_keywords)
-        st.dataframe(df_test)
-
-    if st.checkbox("🔍 Test API avec mots-clés anglais génériques"):
-        test_payload = [{
-            "keywords": ["shoes", "insurance", "laptop"],
-            "language_code": "en",
-            "location_code": 2840  # United States
-        }]
-    
-        response = requests.post(
-            "https://api.dataforseo.com/v3/keywords_data/google/search_volume/live",
-            auth=(st.secrets["dataforseo"]["username"], st.secrets["dataforseo"]["password"]),
-            json=test_payload
-        )
-    
-        results = response.json()
-        st.write("Status code :", response.status_code)
-        st.json(results)
-
-
     
     if run_google_ads_data and keyword_variants:
         with st.spinner("📊 Récupération des volumes de recherche Google Ads..."):
