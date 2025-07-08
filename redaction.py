@@ -435,8 +435,7 @@ if keyword:
     
     if run_google_ads_data and keyword_variants:
         with st.spinner("📊 Récupération des volumes de recherche Google Ads..."):
-            keyword_data = get_dataforseo_metrics(keyword_variants)
-
+            keyword_data = get_dataforseo_metrics_new_api(keyword_variants)
 
         import pandas as pd
         df_keywords = pd.DataFrame(keyword_data)
