@@ -68,6 +68,8 @@ a {
 st.title("🧠 Assistant de rédaction SEO multilingue")
 
 keyword = st.text_input("Mot-clé principal (en français)")
+lancer_analyse = st.button("🚀 Lancer l’analyse SEO")
+
 
 # ✅ Options de l’analyse à activer ou non
 st.markdown("### ⚙️ Options de l’analyse")
@@ -111,6 +113,7 @@ def interroger_magisterium_contenu(section_title, mot_cle):
         "Authorization": f"Bearer {MAGISTERIUM_API_KEY}",
         "Content-Type": "application/json"
     }
+    
 
     prompt = f"""
 Tu es un assistant d'écriture catholique fidèle au Magistère. À partir du thème suivant : « {section_title} » (dans le contexte de l'article sur « {mot_cle} »), propose **5 à 7 bullet points** bien rédigés en français qui serviront de contenu pour cette section.
@@ -408,7 +411,7 @@ def estimate_optimal_word_count(keyword, top_n=10):
     return avg, median, (first_url, first_word_count), word_counts
 
 
-if keyword:
+if lancer_analyse and keyword:
     enregistrer_recherche(keyword)
 
 
