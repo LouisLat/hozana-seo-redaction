@@ -381,15 +381,15 @@ def get_dataforseo_metrics_loop_safe(keywords: list, mode="async") -> pd.DataFra
 
         results = task_get_response.json().get("tasks", [])[0].get("result", [])
 
-    rows = []
-    for r in results:
-        if r.get("search_volume", 0) > 0:
-            rows.append({
-                "Mot-clé": r.get("keyword", ""),
-                "Volume mensuel": r.get("search_volume", 0)
-            })
-
-    return pd.DataFrame(rows)
+        rows = []
+        for r in results:
+            if r.get("search_volume", 0) > 0:
+                rows.append({
+                    "Mot-clé": r.get("keyword", ""),
+                    "Volume mensuel": r.get("search_volume", 0)
+                })
+    
+        return pd.DataFrame(rows)
 
 
 def estimate_optimal_word_count(keyword, top_n=10):
