@@ -355,6 +355,11 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     return list(set(variants))
 
 def get_dataforseo_metrics_loop_safe(keywords: list) -> pd.DataFrame:
+    
+    # Ajouter automatiquement un mot-clé de test pour vérifier que l'API fonctionne
+    if "prière" not in keywords:
+        keywords = ["prière"] + keywords
+
     username = st.secrets["dataforseo"]["username"]
     password = st.secrets["dataforseo"]["password"]
     credentials = f"{username}:{password}"
