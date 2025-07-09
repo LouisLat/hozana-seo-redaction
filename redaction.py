@@ -355,37 +355,6 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     return list(set(variants))
 
 def get_dataforseo_metrics_loop_safe(keywords: list, mode="async") -> pd.DataFrame:
-    if "prière" not in keywords:
-        keywords = ["prière"] + keywords
-
-    username = st.secrets["dataforseo"]["username"]
-    password = st.secrets["dataforseo"]["password"]
-    credentials = f"{username}:{password}"
-    auth_token = base64.b64encode(credentials.encode()).decode()
-
-    headers = {
-        "Authorization": f"Basic {auth_token}",
-        "Content-Type": "application/json"
-    }
-
-    if mode == "live":
-        # ancienne version 0.075$
-        url = "https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live"
-        payload = [{
-            "search_partners": True,
-            "keywords": keywords,
-            "location_code": 2250,
-            "language_code": "fr",
-            "sort_by": "search_volume",
-            "include_adult_keywords": False
-        }]
-        response = requests.post(url, headers=headers, json=payload)
-        if response.status_code != 200:
-            st.warning("Erreur d'appel DataForSEO live")
-            return pd.DataFrame()
-        data = response.json()
-        results = data.get("tasks", [])[0].get("result", [])
-    else:
         # version asynchrone beaucoup moins chère (~0.01$ pour 100 mots-clés)
         task_url = "https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/task_post"
         payload = {
