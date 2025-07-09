@@ -354,9 +354,7 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     variants = [clean_keyword_variant(line) for line in text.strip().splitlines() if line.strip()]
     return list(set(variants))
 
-def get_dataforseo_metrics_loop_safe(keywords: list) -> pd.DataFrame:
-    
-    # Ajouter automatiquement un mot-clé de test pour vérifier que l'API fonctionne
+def get_dataforseo_metrics_loop_safe(keywords: list, mode="async") -> pd.DataFrame:
     if "prière" not in keywords:
         keywords = ["prière"] + keywords
 
@@ -365,57 +363,65 @@ def get_dataforseo_metrics_loop_safe(keywords: list) -> pd.DataFrame:
     credentials = f"{username}:{password}"
     auth_token = base64.b64encode(credentials.encode()).decode()
 
-    url = "https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live"
     headers = {
         "Authorization": f"Basic {auth_token}",
         "Content-Type": "application/json"
     }
 
-    all_items = []
-
-    for kw in keywords:
+    if mode == "live":
+        # ancienne version 0.075$
+        url = "https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live"
         payload = [{
             "search_partners": True,
-            "keywords": [kw],
+            "keywords": keywords,
             "location_code": 2250,
             "language_code": "fr",
             "sort_by": "search_volume",
             "include_adult_keywords": False
         }]
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code != 200:
+            st.warning("Erreur d'appel DataForSEO live")
+            return pd.DataFrame()
+        data = response.json()
+        results = data.get("tasks", [])[0].get("result", [])
+    else:
+        # version asynchrone beaucoup moins chère (~0.01$ pour 100 mots-clés)
+        task_url = "https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/task_post"
+        payload = {
+            "keywords": keywords,
+            "location_code": 2250,
+            "language_code": "fr"
+        }
+        task_post_response = requests.post(task_url, headers=headers, json=[payload])
+        if task_post_response.status_code != 200:
+            st.warning("Erreur lors de la création de la tâche")
+            return pd.DataFrame()
 
-        try:
-            response = requests.post(url, headers=headers, data=json.dumps(payload))
-            time.sleep(1.5)  # ⏳ pour éviter les blocages
-            if response.status_code != 200:
-                continue
-        
-            data = response.json()
-            task = data.get("tasks", [])[0]
-            
-            result_list = task.get("result", [])
-            if not result_list:
-                st.warning(f"Aucune donnée disponible pour le mot-clé « {kw} » (result vide)")
-                continue
-            
-            item = result_list[0]  # ✅ Pas de 'items', on prend directement l’objet
-            
-            search_volume = item.get("search_volume", 0)
-            if search_volume == 0:
-                st.warning(f"Le mot-clé « {kw} » a un volume de recherche nul.")
-                continue
-            
-            all_items.append({
-                "Mot-clé": item.get("keyword", ""),
-                "Volume mensuel": search_volume
+        task_id = task_post_response.json().get("tasks", [])[0].get("id", "")
+        if not task_id:
+            st.warning("Tâche non créée correctement")
+            return pd.DataFrame()
+
+        time.sleep(2)  # ⏳ laisse le temps de calcul
+        task_get_url = f"https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/task_get/{task_id}"
+        task_get_response = requests.get(task_get_url, headers=headers)
+        if task_get_response.status_code != 200:
+            st.warning("Erreur lors de la récupération des résultats")
+            return pd.DataFrame()
+
+        results = task_get_response.json().get("tasks", [])[0].get("result", [])
+
+    rows = []
+    for r in results:
+        if r.get("search_volume", 0) > 0:
+            rows.append({
+                "Mot-clé": r.get("keyword", ""),
+                "Volume mensuel": r.get("search_volume", 0)
             })
-                           
-        
-        except Exception as e:
-            st.warning(f"Erreur sur le mot-clé {kw} : {e}")
-            continue
 
+    return pd.DataFrame(rows)
 
-    return pd.DataFrame(all_items)
 
 
 def estimate_optimal_word_count(keyword, top_n=10):
@@ -474,7 +480,8 @@ if 'keyword_variants' not in locals():
 
 if run_google_ads_data and keyword_variants:
     with st.spinner("📊 Récupération des volumes de recherche Google Ads..."):
-        df_keywords = get_dataforseo_metrics_loop_safe(keyword_variants)
+        df_keywords = get_dataforseo_metrics_loop_safe(keyword_variants, mode="async")
+
 
     
         if df_keywords.empty or "Mot-clé" not in df_keywords.columns or "Volume mensuel" not in df_keywords.columns:
