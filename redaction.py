@@ -354,8 +354,7 @@ Réponds uniquement par une liste de mots-clés, sans numérotation, sans phrase
     variants = [clean_keyword_variant(line) for line in text.strip().splitlines() if line.strip()]
     return list(set(variants))
 
-def get_dataforseo_metrics_new_api(keywords: list) -> pd.DataFrame:
-    # ⚙️ Préparation des identifiants encodés en Base64
+def get_dataforseo_metrics_loop_safe(keywords: list) -> pd.DataFrame:
     username = st.secrets["dataforseo"]["username"]
     password = st.secrets["dataforseo"]["password"]
     credentials = f"{username}:{password}"
@@ -367,38 +366,38 @@ def get_dataforseo_metrics_new_api(keywords: list) -> pd.DataFrame:
         "Content-Type": "application/json"
     }
 
-    payload = [{
-        "search_partners": True,
-        "keywords": keywords,
-        "location_code": 2250,
-        "language_code": "fr",
-        "sort_by": "search_volume",
-        "include_adult_keywords": False
-    }]
+    all_items = []
 
-    response = requests.post(url, headers=headers, data=json.dumps(payload))
-    if response.status_code != 200:
-        st.error(f"❌ Erreur HTTP {response.status_code} : {response.text}")
-        return pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])
+    for kw in keywords:
+        payload = [{
+            "search_partners": True,
+            "keywords": [kw],
+            "location_code": 2250,
+            "language_code": "fr",
+            "sort_by": "search_volume",
+            "include_adult_keywords": False
+        }]
 
-    data = response.json()
-    st.json(data)  # 👈 Affiche toute la réponse API dans l'interface Streamlit
-    task = data.get("tasks", [])[0]
+        try:
+            response = requests.post(url, headers=headers, data=json.dumps(payload))
+            time.sleep(1.5)  # ⏳ pour éviter les blocages
+            if response.status_code != 200:
+                continue
 
-    # 🔐 Compte bloqué ?
-    if task.get("status_code") == 40201:
-        st.warning("⚠️ Compte DataForSEO temporairement bloqué. Contactez support@dataforseo.com.")
-        return pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])
+            data = response.json()
+            task = data.get("tasks", [])[0]
+            items = task.get("result", [])[0].get("items", [])
+            if items:
+                item = items[0]
+                all_items.append({
+                    "Mot-clé": item.get("keyword", ""),
+                    "Volume mensuel": item.get("search_volume", 0)
+                })
+        except Exception as e:
+            st.warning(f"Erreur sur le mot-clé {kw} : {e}")
+            continue
 
-    try:
-        items = task.get("result", [])[0].get("items", [])
-        return pd.DataFrame([
-            {"Mot-clé": item.get("keyword", ""), "Volume mensuel": item.get("search_volume", 0)}
-            for item in items
-        ])
-    except Exception as e:
-        st.error(f"❌ Erreur dans la réponse DataForSEO : {e}")
-        return pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])
+    return pd.DataFrame(all_items)
 
 
 def estimate_optimal_word_count(keyword, top_n=10):
@@ -457,54 +456,23 @@ if 'keyword_variants' not in locals():
 
 if run_google_ads_data and keyword_variants:
     with st.spinner("📊 Récupération des volumes de recherche Google Ads..."):
-        try:
-            url = "https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live"
-            payload = [{
-                "search_partners": True,
-                "keywords": keyword_variants,
-                "location_code": 2250,
-                "language_code": "fr",
-                "sort_by": "search_volume",
-                "include_adult_keywords": False
-            }]
+        df_keywords = get_dataforseo_metrics_loop_safe(keyword_variants)
 
-            username = st.secrets["dataforseo"]["username"]
-            password = st.secrets["dataforseo"]["password"]
-            auth_token = base64.b64encode(f"{username}:{password}".encode()).decode()
+        if df_keywords.empty or "Mot-clé" not in df_keywords.columns or "Volume mensuel" not in df_keywords.columns:
+            st.warning("⚠️ Aucun volume de recherche disponible. Il se peut que le compte DataForSEO soit temporairement bloqué ou qu'aucune donnée ne soit disponible pour ces mots-clés.")
+            df_keywords = pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])  # pour éviter une erreur plus tard
+        else:
+            df_keywords = df_keywords[["Mot-clé", "Volume mensuel"]]
+            df_keywords = df_keywords[df_keywords["Volume mensuel"] != 0]
+            df_keywords = df_keywords[df_keywords["Volume mensuel"] != "Erreur"]
+            df_keywords = df_keywords.sort_values(by="Volume mensuel", ascending=False)
 
-            headers = {
-                "Authorization": f"Basic {auth_token}",
-                "Content-Type": "application/json"
-            }
-
-            response = requests.post(url, headers=headers, json=payload)
-
-            if response.status_code != 200:
-                st.error(f"❌ Erreur HTTP {response.status_code} : {response.text}")
-                keyword_data = []
+            if df_keywords.empty:
+                st.warning("⚠️ Tous les mots-clés ont un volume nul ou invalide.")
             else:
-                data = response.json()
-                tasks = data.get("tasks", [])
-                if not tasks or "result" not in tasks[0]:
-                    st.error("❌ Erreur : pas de champ `result` dans la réponse DataForSEO.")
-                    keyword_data = []
-                else:
-                    result = tasks[0]["result"]
-                    if not result or "items" not in result[0]:
-                        st.error("❌ Erreur : pas de champ `items` dans `result[0]`.")
-                        keyword_data = []
-                    else:
-                        items = result[0]["items"]
-                        keyword_data = [
-                            {"Mot-clé": item.get("keyword", ""), "Volume mensuel": item.get("search_volume", 0)}
-                            for item in items
-                        ]
-        except Exception as e:
-            st.error(f"❌ Erreur inattendue lors de la récupération des données Google Ads : {e}")
-            keyword_data = []
+                st.markdown("### 📈 Volumes de recherche des formulations")
+                st.dataframe(df_keywords, use_container_width=True)
 
-    
-        df_keywords = pd.DataFrame(keyword_data)
     
         if df_keywords.empty or "Mot-clé" not in df_keywords.columns or "Volume mensuel" not in df_keywords.columns:
             st.warning("⚠️ Aucun volume de recherche disponible. Il se peut que le compte DataForSEO soit temporairement bloqué ou qu'aucune donnée ne soit disponible pour ces mots-clés.")
