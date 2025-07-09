@@ -476,21 +476,6 @@ if run_google_ads_data and keyword_variants:
     with st.spinner("📊 Récupération des volumes de recherche Google Ads..."):
         df_keywords = get_dataforseo_metrics_loop_safe(keyword_variants)
 
-        if df_keywords.empty or "Mot-clé" not in df_keywords.columns or "Volume mensuel" not in df_keywords.columns:
-            st.warning("⚠️ Aucun volume de recherche disponible. Il se peut que le compte DataForSEO soit temporairement bloqué ou qu'aucune donnée ne soit disponible pour ces mots-clés.")
-            df_keywords = pd.DataFrame(columns=["Mot-clé", "Volume mensuel"])  # pour éviter une erreur plus tard
-        else:
-            df_keywords = df_keywords[["Mot-clé", "Volume mensuel"]]
-            df_keywords = df_keywords[df_keywords["Volume mensuel"] != 0]
-            df_keywords = df_keywords[df_keywords["Volume mensuel"] != "Erreur"]
-            df_keywords = df_keywords.sort_values(by="Volume mensuel", ascending=False)
-
-            if df_keywords.empty:
-                st.warning("⚠️ Tous les mots-clés ont un volume nul ou invalide.")
-            else:
-                st.markdown("### 📈 Volumes de recherche des formulations")
-                st.dataframe(df_keywords, use_container_width=True)
-
     
         if df_keywords.empty or "Mot-clé" not in df_keywords.columns or "Volume mensuel" not in df_keywords.columns:
             st.warning("⚠️ Aucun volume de recherche disponible. Il se peut que le compte DataForSEO soit temporairement bloqué ou qu'aucune donnée ne soit disponible pour ces mots-clés.")
