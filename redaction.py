@@ -392,7 +392,6 @@ def get_dataforseo_metrics_loop_safe(keywords: list, mode="async") -> pd.DataFra
     return pd.DataFrame(rows)
 
 
-
 def estimate_optimal_word_count(keyword, top_n=10):
     serp_results = get_serp_data(keyword, lang='fr', country='fr', top_n=top_n)
     urls = [r.get("link") for r in serp_results if r.get("link")]
