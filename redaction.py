@@ -377,7 +377,6 @@ def get_dataforseo_volumes(keywords: list, username: str, password: str, max_ret
         return None
 
     task_id = data["tasks"][0]["id"]
-    st.info(f"Tâche créée avec ID : {task_id}")
 
     for i in range(max_retries):
         time.sleep(delay)
@@ -385,8 +384,6 @@ def get_dataforseo_volumes(keywords: list, username: str, password: str, max_ret
         res = requests.get(get_url, headers=headers)
         res_json = res.json()
         status_msg = res_json["tasks"][0].get("status_message", "")
-
-        st.write(f"Tentative {i+1} - Status message : '{status_msg}'")
 
         if "result" in res_json["tasks"][0] and res_json["tasks"][0]["result"]:
             results = res_json["tasks"][0]["result"]
