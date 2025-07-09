@@ -396,17 +396,19 @@ def get_dataforseo_metrics_loop_safe(keywords: list) -> pd.DataFrame:
             if not result_list:
                 st.warning(f"Aucune donnée disponible pour le mot-clé « {kw} » (result vide)")
                 continue
-        
-            items = result_list[0].get("items", [])
-            if not items:
-                st.warning(f"Aucun résultat 'items' pour le mot-clé « {kw} »")
+            
+            item = result_list[0]  # ✅ Pas de 'items', on prend directement l’objet
+            
+            search_volume = item.get("search_volume", 0)
+            if search_volume == 0:
+                st.warning(f"Le mot-clé « {kw} » a un volume de recherche nul.")
                 continue
-        
-            item = items[0]
+            
             all_items.append({
                 "Mot-clé": item.get("keyword", ""),
-                "Volume mensuel": item.get("search_volume", 0)
+                "Volume mensuel": search_volume
             })
+                           
         
         except Exception as e:
             st.warning(f"Erreur sur le mot-clé {kw} : {e}")
