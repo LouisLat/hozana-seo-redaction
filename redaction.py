@@ -383,19 +383,30 @@ def get_dataforseo_metrics_loop_safe(keywords: list) -> pd.DataFrame:
             time.sleep(1.5)  # ⏳ pour éviter les blocages
             if response.status_code != 200:
                 continue
-
+        
             data = response.json()
             task = data.get("tasks", [])[0]
-            items = task.get("result", [])[0].get("items", [])
-            if items:
-                item = items[0]
-                all_items.append({
-                    "Mot-clé": item.get("keyword", ""),
-                    "Volume mensuel": item.get("search_volume", 0)
-                })
+            
+            result_list = task.get("result", [])
+            if not result_list:
+                st.warning(f"Aucune donnée disponible pour le mot-clé « {kw} » (result vide)")
+                continue
+        
+            items = result_list[0].get("items", [])
+            if not items:
+                st.warning(f"Aucun résultat 'items' pour le mot-clé « {kw} »")
+                continue
+        
+            item = items[0]
+            all_items.append({
+                "Mot-clé": item.get("keyword", ""),
+                "Volume mensuel": item.get("search_volume", 0)
+            })
+        
         except Exception as e:
             st.warning(f"Erreur sur le mot-clé {kw} : {e}")
             continue
+
 
     return pd.DataFrame(all_items)
 
