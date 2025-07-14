@@ -4,7 +4,7 @@ import os
 # Configuration de la page
 st.set_page_config(page_title="Accueil Hozana Tools", layout="wide")
 
-# Authentification globale
+# Authentification simple
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -18,11 +18,10 @@ if not st.session_state.authenticated:
         submitted = st.form_submit_button("Se connecter")
 
         if submitted:
-            credentials = st.secrets["auth"]
-            if email in credentials and credentials[email] == password:
+            auth = st.secrets["auth"]
+            if email == auth["louis_email"] and password == auth["louis_password"]:
                 st.session_state.authenticated = True
-                st.session_state.user_email = email
-                st.success("Connexion réussie. Chargement de la page...")
+                st.success("Connexion réussie. Chargement...")
                 st.rerun()
             else:
                 st.error("Email ou mot de passe incorrect.")
