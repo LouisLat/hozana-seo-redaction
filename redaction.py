@@ -19,7 +19,7 @@ if not st.session_state.authenticated:
 
         if submitted:
             secrets = st.secrets["auth"]
-            if email == secrets["louis_email"] and password == secrets["louis_password"]:
+            if email == secrets.get("louis_email") and password == secrets.get("louis_password"):
                 st.session_state.authenticated = True
                 st.session_state.user_email = email
                 st.success("Connexion réussie. Redirection...")
@@ -61,7 +61,6 @@ st.markdown("""
 st.markdown('<div class="title">Outils SEO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Bienvenue sur la plateforme interne des outils Hozana. Choisissez un module à ouvrir :</div>', unsafe_allow_html=True)
 
-# Liste des modules présents dans /pages/
 modules = {
     "Rédaction d’article SEO multilingue": "redaction_article",
     "Traduction multilingue d’articles": "1_Traduction_articles",
@@ -70,4 +69,4 @@ modules = {
 
 for label, script in modules.items():
     if st.button(label, key=label):
-        st.switch_page(f"{script}.py")  # pas besoin de 'pages/' ici
+        st.switch_page(f"{script}.py")
