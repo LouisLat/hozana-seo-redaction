@@ -69,4 +69,5 @@ modules = {
 
 for label, script in modules.items():
     if st.button(label, key=label):
-        st.switch_page(f"{script}.py")
+        st.switch_page(script)
+
