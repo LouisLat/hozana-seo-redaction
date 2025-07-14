@@ -9,16 +9,16 @@ st.markdown("---")
 st.subheader("🧠 Outils disponibles")
 
 tools = {
-    "🧾 Rédaction d'article SEO multilingue": "pages/redaction_article.py",
-    "📝 Traduction multilingue d'articles": "pages/traduction_multilingue.py",
-    "🚀 Publication automatique d'articles": "pages/publication_automatique.py",
-    "📸 Insertion automatique d’images réalistes": "pages/insertion_images.py",
-    "🔗 Liens internes & suggestions de communautés": "pages/liens_communautes.py",
+    "🧾 Rédaction d'article SEO multilingue": "redaction_article",
+    "📝 Traduction multilingue d'articles": "traduction_multilingue",
+    "🚀 Publication automatique d'articles": "publication_automatique",
+    "📸 Insertion automatique d’images réalistes": "insertion_images",
+    "🔗 Liens internes & suggestions de communautés": "liens_communautes",
 }
 
-for label, page_path in tools.items():
+for label, page_name in tools.items():
     if st.button(label):
-        st.switch_page(page_path)
+        st.switch_page(page_name)
 
 st.markdown("---")
 st.info("Pour toute question ou bug, contactez l’équipe technique.")
