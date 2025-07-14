@@ -11,3 +11,4 @@ google-auth
 google-auth-oauthlib
 google-auth-httplib2
 google-ads==22.0.0
+streamlit-extras
