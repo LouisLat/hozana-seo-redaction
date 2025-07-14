@@ -11,8 +11,8 @@ st.markdown("---")
 st.subheader("🧠 Outils disponibles")
 
 tools = {
-    "📝 Traduction multilingue d'articles": "redaction_article",
-    "📈 Assistant SEO multilingue": "assistant_seo",
+    "🧾 Rédaction d'article SEO multilingue": "redaction_article",
+    "📝 Traduction multilingue d'articles": "traduction_multilingue",
     "🚀 Publication automatique d'articles": "publication_automatique",
     "📸 Insertion automatique d’images réalistes": "insertion_images",
     "🔗 Liens internes & suggestions de communautés": "liens_communautes",
