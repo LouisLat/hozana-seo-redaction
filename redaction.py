@@ -1,29 +1,84 @@
 import streamlit as st
+import os
 
-st.set_page_config(page_title="Assistant Hozana", page_icon="✨", layout="centered")
+# Configuration de la page
+st.set_page_config(page_title="Accueil Hozana Tools", layout="wide")
 
-st.title("✨ Assistant Hozana")
-st.markdown("Bienvenue dans l'assistant Hozana. Choisissez un outil dans le menu à gauche.")
-st.markdown("---")
+# Authentification globale
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
-# 🔍 Liste des pages acceptées par Streamlit (pour debug)
-# st.sidebar.write("Pages disponibles :", list(st._runtime.scriptrunner._main_script_pages.keys()))
+if not st.session_state.authenticated:
+    st.title("🔒 Accès restreint")
+    st.markdown("Veuillez vous identifier pour accéder aux outils Hozana.")
 
-st.subheader("🧠 Outils disponibles")
+    with st.form("login_form"):
+        email = st.text_input("Adresse email")
+        password = st.text_input("Mot de passe", type="password")
+        submitted = st.form_submit_button("Se connecter")
 
-# Dictionnaire des pages : label → nom exact défini par set_page_config dans chaque page
-tools = {
-    "🧾 Rédaction d'article SEO multilingue": "Rédaction d'article SEO multilingue",
-    "📝 Traduction multilingue d'articles": "Traduction multilingue d'articles",
-    "🚀 Publication automatique d'articles": "Publication automatique d'articles",
-    "📸 Insertion automatique d’images réalistes": "Insertion automatique d’images réalistes",
-    "🔗 Liens internes & suggestions de communautés": "Liens internes & suggestions de communautés",
+        if submitted:
+            credentials = st.secrets["auth"]
+            if email in credentials and credentials[email] == password:
+                st.session_state.authenticated = True
+                st.session_state.user_email = email
+                st.success("Connexion réussie. Chargement de la page...")
+                st.rerun()
+            else:
+                st.error("Email ou mot de passe incorrect.")
+    st.stop()
+# Style harmonisé
+st.markdown("""
+    <style>
+        html, body {
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .block-container {
+            padding-top: 2rem;
+        }
+        .title {
+            font-size: 2.4rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        }
+        .stButton>button {
+            width: 100%;
+            padding: 0.75rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            background-color: #f00020;
+            border-radius: 0.5rem;
+            border: none;
+        }
+        .stButton>button:hover {
+            color: white;
+            background-color: #f00020;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Titre
+st.markdown('<div class="title">Outils SEO</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Bienvenue sur la plateforme interne des outils Hozana. Choisissez un module à ouvrir :</div>', unsafe_allow_html=True)
+
+# Dictionnaire des modules
+modules = {
+    "Traduction multilingue d’articles": "redaction_article",
+    "Publication d’articles traduits": "2_Publication_articles",
+    # Ajouter d'autres outils ici
 }
 
-# Affichage des boutons et redirection avec switch_page()
-for label, page_title in tools.items():
-    if st.button(label):
-        st.switch_page(page_title)
-
-st.markdown("---")
-st.info("Pour toute question ou bug, contactez l’équipe technique.")
+# Interface
+for label, page_script in modules.items():
+    with st.container():
+        if st.button(f"{label}", key=label):
+            st.switch_page(f"pages/{page_script}.py")
+        st.markdown('</div>', unsafe_allow_html=True)
