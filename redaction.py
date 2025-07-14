@@ -46,3 +46,28 @@ st.markdown("""
             padding: 0.75rem;
             font-weight: 600;
             font-size: 1rem;
+            color: white;
+            background-color: #f00020;
+            border-radius: 0.5rem;
+            border: none;
+        }
+        .stButton>button:hover {
+            color: white;
+            background-color: #c0001a;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="title">Outils SEO</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Bienvenue sur la plateforme interne des outils Hozana. Choisissez un module à ouvrir :</div>', unsafe_allow_html=True)
+
+# Liste des modules présents dans /pages/
+modules = {
+    "Rédaction d’article SEO multilingue": "redaction_article",
+    "Traduction multilingue d’articles": "1_Traduction_articles",
+    "Publication d’articles traduits": "2_Publication_articles"
+}
+
+for label, script in modules.items():
+    if st.button(label, key=label):
+        st.switch_page(f"{script}.py")  # pas besoin de 'pages/' ici
