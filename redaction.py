@@ -1,7 +1,10 @@
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
 
 st.set_page_config(page_title="Accueil Hozana Tools", layout="wide")
+
+if "selected_page" in st.session_state:
+    page = st.session_state.pop("selected_page")
+    st.switch_page(f"pages/{page}.py")
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -33,4 +36,6 @@ modules = {
 
 for label, script in modules.items():
     if st.button(label, key=label):
-        switch_page(script)
+        st.session_state.selected_page = script
+        st.experimental_rerun()
+
