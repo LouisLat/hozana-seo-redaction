@@ -37,5 +37,5 @@ modules = {
 for label, script in modules.items():
     if st.button(label, key=label):
         st.session_state.selected_page = script
-        st.experimental_rerun()
+        st.rerun()
 
