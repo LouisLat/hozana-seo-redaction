@@ -80,7 +80,6 @@ run_length_analysis = st.checkbox("Analyser la longueur optimale", value=True)
 run_google_ads_data = st.checkbox("Afficher les volumes Google Ads", value=True)
 run_keyword_variants = run_google_ads_data
 run_community_suggestions = st.checkbox("Suggérer des communautés à promouvoir", value=True)
-run_link_suggestions = st.checkbox("Suggérer des liens internes avec ancrage", value=True)
 run_plan_generation = st.checkbox("Générer le plan SEO structuré", value=True)
 run_enrich_plan = st.checkbox("Enrichir doctrinalement chaque section du plan", value=True)
 run_link_suggestions = st.checkbox("Suggérer des liens internes avec ancrage", value=True)
