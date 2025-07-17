@@ -83,6 +83,7 @@ run_community_suggestions = st.checkbox("Suggérer des communautés à promouvoi
 run_link_suggestions = st.checkbox("Suggérer des liens internes avec ancrage", value=True)
 run_plan_generation = st.checkbox("Générer le plan SEO structuré", value=True)
 run_enrich_plan = st.checkbox("Enrichir doctrinalement chaque section du plan", value=True)
+run_link_suggestions = st.checkbox("Suggérer des liens internes avec ancrage", value=True)
 
 start_analysis = st.button("🚀 Lancer l’analyse SEO")
 
@@ -657,102 +658,103 @@ if run_google_ads_data and keyword_variants:
     st.success(f"💰 Coût estimé OpenAI : **{estimate_cost(total_tokens_used)} $** ({total_tokens_used} tokens)")
 
     # 🔗 Recommandations de liens internes avec phrases d'ancrage (GPT-3.5)
-    st.markdown("### 🔗 Liens recommandés à insérer dans l’article")
-
-    with st.spinner("🧠 Analyse sémantique et recommandations..."):
-
-        import os
-        import json
-
-        # 🔹 Chargement ou initialisation du cache d'embeddings
-        EMBED_CACHE_FILE = "cache_embeddings.json"
-        if os.path.exists(EMBED_CACHE_FILE):
-            with open(EMBED_CACHE_FILE, "r") as f:
-                st.session_state.embedding_cache = json.load(f)
-        else:
-            st.session_state.embedding_cache = {}
-
-        def get_embedding(text):
-            if text in st.session_state.embedding_cache:
-                return st.session_state.embedding_cache[text]
-            response = client.embeddings.create(
-                model="text-embedding-3-small",
-                input=[text]
-            )
-            embedding = response.data[0].embedding
-            st.session_state.embedding_cache[text] = embedding
-            with open(EMBED_CACHE_FILE, "w") as f:
-                json.dump(st.session_state.embedding_cache, f)
-            return embedding
-
-        # 🔹 Chargement des articles existants (Question 7364)
-        SHEET_ID = "1HWgw3qhjGxaFE1gDFwymFHcPodt88hzXYvk1YPxLxWw"
-        SHEET_RANGE = "Question 7364!A2:B"  # A = URL, B = Title
-
-        credentials_dict = st.secrets["gcp_service_account"]
-        credentials = service_account.Credentials.from_service_account_info(
-            credentials_dict,
-            scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"],
-        )
-        service = build("sheets", "v4", credentials=credentials)
-        result = service.spreadsheets().values().get(
-            spreadsheetId=SHEET_ID, range=SHEET_RANGE
-        ).execute()
-        values = result.get("values", [])
-        df_articles = pd.DataFrame(values, columns=["URL", "Title"]).dropna()
-
-        df_articles["embedding"] = df_articles["Title"].apply(get_embedding)
-        df_articles["embedding_vec"] = df_articles["embedding"].apply(np.array)
-
-        # 🔹 H3 uniquement pour l’ancrage
-        ancrages = [titre for level, *rest in sections if level == "H3" for titre in rest]
-
-        suggestions = []
-
-        for titre in ancrages:
-            emb_titre = get_embedding(titre)
-            sims = cosine_similarity([emb_titre], np.vstack(df_articles["embedding_vec"].values))[0]
-            df_articles["similarity"] = sims
-            best_row = df_articles.sort_values("similarity", ascending=False).iloc[0]
-
-            suggestions.append({
-                "Titre du lien": best_row["Title"],
-                "URL": best_row["URL"],
-                "À insérer après": titre,
-                "Score de similarité": round(best_row["similarity"], 3)
-            })
-
-        # 🔹 Sélection des 15 meilleures suggestions
-        top_suggestions = sorted(suggestions, key=lambda x: x["Score de similarité"], reverse=True)[:15]
-
-        # 🔹 Génération des phrases d’ancrage (GPT-3.5-turbo)
-        for s in top_suggestions:
-            prompt = f"""
-    Tu es un rédacteur web catholique.
-
-    Insère naturellement le lien suivant dans une phrase fluide, courte (max 25 mots), destinée à un article sur « {keyword} ».
-
-    Titre du lien : {s['Titre du lien']}
-    URL : {s['URL']}
-    Contexte d’insertion : après la section « {s['À insérer après']} »
-
-    Utilise une **ancre naturelle**, pas un copier-coller du titre. Réponds uniquement par une phrase en markdown.
-    """
-            try:
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.5
+    if run_link_suggestions:
+        st.markdown("### 🔗 Liens recommandés à insérer dans l’article")
+    
+        with st.spinner("🧠 Analyse sémantique et recommandations..."):
+    
+            import os
+            import json
+    
+            # 🔹 Chargement ou initialisation du cache d'embeddings
+            EMBED_CACHE_FILE = "cache_embeddings.json"
+            if os.path.exists(EMBED_CACHE_FILE):
+                with open(EMBED_CACHE_FILE, "r") as f:
+                    st.session_state.embedding_cache = json.load(f)
+            else:
+                st.session_state.embedding_cache = {}
+    
+            def get_embedding(text):
+                if text in st.session_state.embedding_cache:
+                    return st.session_state.embedding_cache[text]
+                response = client.embeddings.create(
+                    model="text-embedding-3-small",
+                    input=[text]
                 )
-                phrase = response.choices[0].message.content.strip()
-            except Exception:
-                phrase = "—"
-
-            s["Phrase avec ancre"] = phrase
-
-        df_top = pd.DataFrame(top_suggestions)
-        st.markdown("Voici les **15 liens internes** les plus pertinents à intégrer dans l’article, avec leur phrase d’ancrage :")
-        st.dataframe(df_top[["Titre du lien", "URL", "À insérer après", "Phrase avec ancre"]], use_container_width=True)
+                embedding = response.data[0].embedding
+                st.session_state.embedding_cache[text] = embedding
+                with open(EMBED_CACHE_FILE, "w") as f:
+                    json.dump(st.session_state.embedding_cache, f)
+                return embedding
+    
+            # 🔹 Chargement des articles existants (Question 7364)
+            SHEET_ID = "1HWgw3qhjGxaFE1gDFwymFHcPodt88hzXYvk1YPxLxWw"
+            SHEET_RANGE = "Question 7364!A2:B"  # A = URL, B = Title
+    
+            credentials_dict = st.secrets["gcp_service_account"]
+            credentials = service_account.Credentials.from_service_account_info(
+                credentials_dict,
+                scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"],
+            )
+            service = build("sheets", "v4", credentials=credentials)
+            result = service.spreadsheets().values().get(
+                spreadsheetId=SHEET_ID, range=SHEET_RANGE
+            ).execute()
+            values = result.get("values", [])
+            df_articles = pd.DataFrame(values, columns=["URL", "Title"]).dropna()
+    
+            df_articles["embedding"] = df_articles["Title"].apply(get_embedding)
+            df_articles["embedding_vec"] = df_articles["embedding"].apply(np.array)
+    
+            # 🔹 H3 uniquement pour l’ancrage
+            ancrages = [titre for level, *rest in sections if level == "H3" for titre in rest]
+    
+            suggestions = []
+    
+            for titre in ancrages:
+                emb_titre = get_embedding(titre)
+                sims = cosine_similarity([emb_titre], np.vstack(df_articles["embedding_vec"].values))[0]
+                df_articles["similarity"] = sims
+                best_row = df_articles.sort_values("similarity", ascending=False).iloc[0]
+    
+                suggestions.append({
+                    "Titre du lien": best_row["Title"],
+                    "URL": best_row["URL"],
+                    "À insérer après": titre,
+                    "Score de similarité": round(best_row["similarity"], 3)
+                })
+    
+            # 🔹 Sélection des 15 meilleures suggestions
+            top_suggestions = sorted(suggestions, key=lambda x: x["Score de similarité"], reverse=True)[:15]
+    
+            # 🔹 Génération des phrases d’ancrage (GPT-3.5-turbo)
+            for s in top_suggestions:
+                prompt = f"""
+        Tu es un rédacteur web catholique.
+    
+        Insère naturellement le lien suivant dans une phrase fluide, courte (max 25 mots), destinée à un article sur « {keyword} ».
+    
+        Titre du lien : {s['Titre du lien']}
+        URL : {s['URL']}
+        Contexte d’insertion : après la section « {s['À insérer après']} »
+    
+        Utilise une **ancre naturelle**, pas un copier-coller du titre. Réponds uniquement par une phrase en markdown.
+        """
+                try:
+                    response = client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.5
+                    )
+                    phrase = response.choices[0].message.content.strip()
+                except Exception:
+                    phrase = "—"
+    
+                s["Phrase avec ancre"] = phrase
+    
+            df_top = pd.DataFrame(top_suggestions)
+            st.markdown("Voici les **15 liens internes** les plus pertinents à intégrer dans l’article, avec leur phrase d’ancrage :")
+            st.dataframe(df_top[["Titre du lien", "URL", "À insérer après", "Phrase avec ancre"]], use_container_width=True)
         
 
     sauvegarder_resultat_complet(
