@@ -77,8 +77,8 @@ keyword = st.text_input("Mot-clé principal (en français)")
 # ✅ Options de l’analyse à activer ou non
 st.markdown("### ⚙️ Options de l’analyse")
 run_length_analysis = st.checkbox("Analyser la longueur optimale", value=True)
-run_keyword_variants = st.checkbox("Rechercher les variantes de mots-clés", value=True)
 run_google_ads_data = st.checkbox("Afficher les volumes Google Ads", value=True)
+run_keyword_variants = run_google_ads_data
 run_community_suggestions = st.checkbox("Suggérer des communautés à promouvoir", value=True)
 run_link_suggestions = st.checkbox("Suggérer des liens internes avec ancrage", value=True)
 run_plan_generation = st.checkbox("Générer le plan SEO structuré", value=True)
