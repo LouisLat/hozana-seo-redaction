@@ -90,6 +90,8 @@ run_keyword_variants = st.checkbox("Rechercher les variantes de mots-clés", val
 run_google_ads_data = st.checkbox("Afficher les volumes Google Ads", value=True)
 run_community_suggestions = st.checkbox("Suggérer des communautés à promouvoir", value=True)
 run_link_suggestions = st.checkbox("Suggérer des liens internes avec ancrage", value=True)
+run_plan_generation = st.checkbox("Générer le plan SEO structuré", value=True)
+run_enrich_plan = st.checkbox("Enrichir doctrinalement chaque section du plan", value=True)
 
 total_tokens_used = 0
 def estimate_cost(tokens_used):
@@ -594,62 +596,64 @@ if run_google_ads_data and keyword_variants:
 
             st.dataframe(df_ctas, use_container_width=True)
 
-
-
-
+    # ✅ 5. Génération du plan SEO
+    if run_plan_generation:
+        with st.spinner("⏳ Génération du plan SEO..."):
+            plan_text = generate_plan(keyword, 10, median_words)
+            sections = extract_sections(plan_text)
     
-    with st.spinner("⏳ Génération du plan SEO..."):
-        plan_text = generate_plan(keyword, 10, median_words)
-        sections = extract_sections(plan_text)
-
-    st.success("✅ Plan généré.")
-    st.markdown("### 📄 Plan proposé")
-    parse_and_display_plan(plan_text)
-
-
-    st.markdown("---")
+        st.success("✅ Plan généré.")
+        st.markdown("### 📄 Plan proposé")
+        parse_and_display_plan(plan_text)
+    else:
+        st.info("La génération du plan SEO a été désactivée.")
+        plan_text = ""
+        sections = []
     
+    # ✅ 6. Enrichissement doctrinal
     section_bullets = {}
+    if run_enrich_plan and sections:
+        st.markdown("---")
+        for item in sections:
+            if item[0] == "H2":
+                level, title = item
+                parent = None
+            else:
+                level, title, parent = item
     
-    for item in sections:
-        if item[0] == "H2":
-            level, title = item
-            parent = None
-        else:
-            level, title, parent = item
+            show_bullets = False
+            if title.lower().startswith("introduction"):
+                show_bullets = True
+            elif level == "H3" and parent.lower() != "introduction":
+                show_bullets = True
+    
+            if show_bullets:
+                st.markdown(f"""
+                <div style='border: 1px solid #ccc; border-radius: 8px; padding: 10px 15px; background-color: #f9f9f9; margin-bottom: 15px;'>
+                <b>📌 {title}</b><br>
+                </div>
+                """, unsafe_allow_html=True)
+    
+                with st.spinner("📖 Enrichissement doctrinal avec Magisterium..."):
+                    bullets, texte_brut, citations = interroger_magisterium_contenu(title, keyword)
+    
+                    if not bullets:
+                        st.warning("❗ Aucun contenu généré pour cette section.")
+                    else:
+                        for b in bullets:
+                            propre = re.sub(r"^[-•◦\s]+", "", b.strip())
+                            st.markdown(f"- {propre}")
+                        section_bullets[title] = bullets
+    
+                        if citations:
+                            st.markdown("#### 📂 Sources brutes citées")
+                            for citation in citations:
+                                st.markdown(f"- {citation.strip()}")
+            else:
+                st.markdown(f"## 📌 {title}")
+    else:
+        st.info("L’enrichissement doctrinal a été désactivé ou aucun plan n’a été généré.")
 
-        show_bullets = False
-
-        if title.lower().startswith("introduction"):
-            show_bullets = True
-        elif level == "H3" and parent.lower() != "introduction":
-            show_bullets = True
-
-        if show_bullets:
-            st.markdown(f"""
-    <div style='border: 1px solid #ccc; border-radius: 8px; padding: 10px 15px; background-color: #f9f9f9; margin-bottom: 15px;'>
-    <b>📌 {title}</b><br>
-    </div>
-    """, unsafe_allow_html=True)
-
-            with st.spinner("📖 Enrichissement doctrinal avec Magisterium..."):
-                bullets, texte_brut, citations = interroger_magisterium_contenu(title, keyword)
-
-                if not bullets:
-                    st.warning("❗ Aucun contenu généré pour cette section.")
-                else:
-                    for b in bullets:
-                        propre = re.sub(r"^[-•◦\s]+", "", b.strip())
-                        st.markdown(f"- {propre}")
-                    section_bullets[title] = bullets
-
-                    if citations:
-                        st.markdown("#### 📂 Sources brutes citées")
-                        for citation in citations:
-                            st.markdown(f"- {citation.strip()}")
-
-        else:
-            st.markdown(f"## 📌 {title}")
 
 
     st.markdown("---")
@@ -752,16 +756,18 @@ if run_google_ads_data and keyword_variants:
         df_top = pd.DataFrame(top_suggestions)
         st.markdown("Voici les **15 liens internes** les plus pertinents à intégrer dans l’article, avec leur phrase d’ancrage :")
         st.dataframe(df_top[["Titre du lien", "URL", "À insérer après", "Phrase avec ancre"]], use_container_width=True)
+        
 
     sauvegarder_resultat_complet(
         keyword=keyword,
-        plan=plan_text,
+        plan=plan_text if run_plan_generation else "",
         variantes=keyword_variants,
-        volumes=df_keywords.to_dict(orient="records") if run_google_ads_data and not df_keywords.empty else [],
+        volumes=df.to_dict(orient="records") if run_google_ads_data and 'df' in locals() else [],
         communautes=df_ctas.to_dict(orient="records") if run_community_suggestions else [],
         liens=df_top.to_dict(orient="records") if run_link_suggestions else [],
         cout=estimate_cost(total_tokens_used)
     )
+
     
     if st.button("📥 Télécharger la fiche SEO en PDF"):
         path = generate_pdf(keyword, plan_text, section_bullets)
