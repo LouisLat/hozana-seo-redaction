@@ -73,15 +73,6 @@ st.title("🧠 Assistant de rédaction SEO multilingue")
 
 
 keyword = st.text_input("Mot-clé principal (en français)")
-start_analysis = st.button("🚀 Lancer l’analyse SEO")
-
-if start_analysis and keyword:
-    # exécution de l’analyse
-    pass
-
-
-
-
 
 # ✅ Options de l’analyse à activer ou non
 st.markdown("### ⚙️ Options de l’analyse")
@@ -92,6 +83,12 @@ run_community_suggestions = st.checkbox("Suggérer des communautés à promouvoi
 run_link_suggestions = st.checkbox("Suggérer des liens internes avec ancrage", value=True)
 run_plan_generation = st.checkbox("Générer le plan SEO structuré", value=True)
 run_enrich_plan = st.checkbox("Enrichir doctrinalement chaque section du plan", value=True)
+
+start_analysis = st.button("🚀 Lancer l’analyse SEO")
+
+if start_analysis and keyword:
+    # exécution de l’analyse
+    pass
 
 total_tokens_used = 0
 def estimate_cost(tokens_used):
