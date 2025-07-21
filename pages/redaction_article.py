@@ -27,7 +27,7 @@ DEEPL_API_KEY = st.secrets["deepl_api_key"]  # si tu utilises DeepL ailleurs
 client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 # Configuration Streamlit
-st.set_page_config(page_title="Assistant SEO Multilingue", layout="wide")
+st.set_page_config(page_title="Assistant SEO", layout="wide")
 
 st.sidebar.markdown("## 📜 Recherches passées")
 
