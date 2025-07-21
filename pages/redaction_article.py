@@ -20,6 +20,10 @@ import datetime
 from googleapiclient.discovery import build
 import base64
 
+# Protection d'accès
+if "authenticated" not in st.session_state or not st.session_state.authenticated:
+    st.error("⛔ Accès non autorisé. Veuillez vous connecter depuis la page d'accueil.")
+    st.stop()
 
 SERP_API_KEY = st.secrets["serp_api_key"]
 MAGISTERIUM_API_KEY = st.secrets["magisterium_api_key"]
