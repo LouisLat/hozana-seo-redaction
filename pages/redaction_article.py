@@ -69,7 +69,7 @@ a {
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🧠 Assistant de rédaction SEO")
+st.title("Assistant de rédaction SEO")
 
 
 keyword = st.text_input("Mot-clé principal (en français)")
